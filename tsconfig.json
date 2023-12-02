@@ -1,13 +1,12 @@
 {
   "compilerOptions": {
     "target": "es2022",
-    "module": "node16",
+    "module": "commonjs",
     "lib": ["ES2022"],
-    "moduleResolution": "node16",
+    "moduleResolution": "node",
     "rootDir": ".",
-    "outDir": "build",
+    "outDir": "dist",
     "allowSyntheticDefaultImports": true,
-    "importHelpers": true,
     "alwaysStrict": true,
     "sourceMap": true,
     "forceConsistentCasingInFileNames": true,
@@ -19,5 +18,5 @@
     "noImplicitThis": false,
     "strictNullChecks": false
   },
-  "include": ["src/**/*", "__tests__/**/*"]
+  "include": ["jest.config.ts", "src/**/*", "__tests__/**/*"]
 }
