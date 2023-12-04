@@ -83,6 +83,7 @@ export default class MongoBulkDataMigration<TSchema extends Document>
   public getInfos() {
     return {
       id: this.id,
+      migrationInfos: this.migrationInfos,
       collection: this.getCollection(),
       collectionName: this.collectionName,
     };

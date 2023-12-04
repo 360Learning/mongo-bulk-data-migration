@@ -16,6 +16,7 @@ describe('DataMigration', () => {
     query: any;
     projection: any;
   };
+  expect.anything();
 
   beforeEach(async () => {
     db = global.db;
