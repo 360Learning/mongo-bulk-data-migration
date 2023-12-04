@@ -1,5 +1,5 @@
 import type { Collection, Db, Document, ObjectId } from 'mongodb';
-import { DataMigration, DELETE_OPERATION } from '../src';
+import { MongoBulkDataMigration, DELETE_OPERATION } from '../src';
 import { INITIAL_BULK_INFOS } from '../src/lib/AbstractBulkOperationResults';
 
 const COLLECTION = 'testCollection';
@@ -38,7 +38,7 @@ describe('DataMigration', () => {
   describe('#update', () => {
     it('should perform the migration successfully', async () => {
       await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
-      const dataMigration = new DataMigration({
+      const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         update: () => ({ $set: { key: 2 } }),
       });
@@ -65,7 +65,7 @@ describe('DataMigration', () => {
       const insertedDocuments = await collection
         .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
         .toArray();
-      const dataMigration = new DataMigration({
+      const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         update: () => ({ $set: { key: 2 } }),
       });
@@ -101,7 +101,7 @@ describe('DataMigration', () => {
           return { $set: { key: 10 } };
         }
       });
-      const dataMigration = new DataMigration({
+      const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         options: { maxBulkSize: 1 },
         update: udpateStub,
@@ -151,7 +151,7 @@ describe('DataMigration', () => {
 
       it('should perform async update one by one', async () => {
         await collection.insertMany([{ delay: 10 }, { delay: 0 }]);
-        const dataMigration = new DataMigration({
+        const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           options: { maxConcurrentUpdateCalls: 1 },
           update: updateStub,
@@ -173,7 +173,7 @@ describe('DataMigration', () => {
           { delay: 2 }, // ->  5ms (0+5)
           { delay: 1 }, // ->  6ms (5+1)
         ]);
-        const dataMigration = new DataMigration({
+        const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           options: { maxConcurrentUpdateCalls: 2 },
           update: updateStub,
@@ -195,7 +195,7 @@ describe('DataMigration', () => {
           { delay: 0 },
           { delay: 1 }, // Executed in the 2nd bulk ops
         ]);
-        const dataMigration = new DataMigration({
+        const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           options: {
             maxConcurrentUpdateCalls: 5,
@@ -229,7 +229,7 @@ describe('DataMigration', () => {
           { key: 1 },
           { key: 5 },
         ]);
-        const dataMigration = new DataMigration({
+        const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           query: [
             {
@@ -265,7 +265,7 @@ describe('DataMigration', () => {
       it('should concat projection to the pipeline', async () => {
         const insertResult = await collection.insertMany([{ a: 1, b: 2 }]);
         const incUpdateStub = jest.fn().mockResolvedValue({ $set: { b: 99 } });
-        const dataMigration = new DataMigration({
+        const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           projection: { b: 1 },
           query: [{ $match: { a: { $exists: true } } }],
@@ -282,7 +282,7 @@ describe('DataMigration', () => {
 
       it('should work even with zero matching documents', async () => {
         // test needed because the aggregation stage "$count" returns null when there is no document from the previous stage
-        const dataMigration = new DataMigration({
+        const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           query: [{ $match: {} }],
           update: () => ({ $set: { key: 1 } }),
@@ -325,7 +325,7 @@ describe('DataMigration', () => {
       });
 
       it.skip('should reject update when validation is invalid', async () => {
-        const dataMigration = new DataMigration({
+        const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           collectionName: 'sampleCollection',
           update: { $set: { invalid_key: 'update' } },
@@ -339,7 +339,7 @@ describe('DataMigration', () => {
       });
 
       it('should disable validation for the update process if specified', async () => {
-        const dataMigration = new DataMigration({
+        const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           collectionName: 'sampleCollection',
           update: { $set: { invalid_key: 'update' } },
@@ -359,7 +359,7 @@ describe('DataMigration', () => {
       // TODO handle MongoBulkWriteError
       it.skip('should continue on MongoBulkWriteError and keep writeErrors', async () => {
         await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 2 }]);
-        const dataMigration = new DataMigration<Document>({
+        const dataMigration = new MongoBulkDataMigration<Document>({
           ...DM_DEFAULT_SETUP,
           options: { continueOnBulkWriteError: true, maxBulkSize: 1 },
           update: ({ key }) => {
@@ -386,7 +386,7 @@ describe('DataMigration', () => {
   describe('#delete', () => {
     it('should perform the delete operation', async () => {
       await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
-      const dataMigration = new DataMigration({
+      const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         query: { key: 2 },
         update: DELETE_OPERATION,

@@ -41,7 +41,7 @@ const defaultLogger = {
   },
 };
 
-export default class DataMigration<TSchema extends Document>
+export default class MongoBulkDataMigration<TSchema extends Document>
   implements RollbackableUpdate
 {
   private readonly options: DataMigrationOptions<TSchema> = {

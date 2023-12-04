@@ -1,7 +1,7 @@
 import { MongoError, MongoInvalidArgumentError } from 'mongodb';
 
 import type { Collection, Db } from 'mongodb';
-import { DataMigration } from '../src';
+import { MongoBulkDataMigration } from '../src';
 
 const COLLECTION = 'testCollection';
 const SCRIPT_ID = 'scriptId';
@@ -37,7 +37,7 @@ describe('DataMigration', () => {
   it('should directly reject for invalid queries', async () => {
     await collection.insertMany([{ key: 1 }]);
     const invalidUpdateQuery: any = () => null;
-    const dataMigration = new DataMigration({
+    const dataMigration = new MongoBulkDataMigration({
       ...DM_DEFAULT_SETUP,
       update: invalidUpdateQuery,
     });
@@ -54,7 +54,7 @@ describe('DataMigration', () => {
   it('should directly reject for invalid aggregate pipelines (empty from)', async () => {
     await collection.insertMany([{ key: 1 }]);
     const invalidAggregatePipeline: any = [{ $lookup: { invalidKey: true } }];
-    const dataMigration = new DataMigration({
+    const dataMigration = new MongoBulkDataMigration({
       ...DM_DEFAULT_SETUP,
       query: invalidAggregatePipeline,
       update: {},
@@ -69,7 +69,7 @@ describe('DataMigration', () => {
 
   describe('#clean', () => {
     it('should not do anything if no backup is available', async () => {
-      const migration = new DataMigration({
+      const migration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         update: {},
       });
@@ -84,7 +84,7 @@ describe('DataMigration', () => {
 
     it('should drop the rollback collection', async () => {
       await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
-      const migration = new DataMigration({
+      const migration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         update: { $set: { key: 2 } },
       });

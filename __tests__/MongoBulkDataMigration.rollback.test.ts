@@ -5,7 +5,7 @@ import {
   disableValidation,
   enableValidation,
 } from '../__testsUtils__/mongoValidation';
-import { DataMigration, DELETE_OPERATION } from '../src';
+import { MongoBulkDataMigration, DELETE_OPERATION } from '../src';
 import { INITIAL_BULK_INFOS } from '../src/lib/AbstractBulkOperationResults';
 
 const COLLECTION = 'testCollection';
@@ -20,7 +20,7 @@ type DmDemoCollection = {
   other: number;
 };
 
-describe('DataMigration', () => {
+describe('MongoBulkDataMigration', () => {
   let db: Db;
   let collection: Collection;
   let backupCollection: Collection;
@@ -57,7 +57,7 @@ describe('DataMigration', () => {
         { key: 2, other: 1 },
         { key: 3, other: 1 },
       ]);
-      const dataMigration = new DataMigration({
+      const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         options: { maxBulkSize: 1 },
         query: { key: { $gt: 1 } },
@@ -87,7 +87,7 @@ describe('DataMigration', () => {
         { key: 3, other: 4 },
         { key: 5, other: 6 },
       ]);
-      const dataMigration = new DataMigration({
+      const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         projection: { key: 1 },
         update: { $set: { key: 2 } },
@@ -112,7 +112,7 @@ describe('DataMigration', () => {
 
     it('should rollback only the filterProjection specified keys', async () => {
       await collection.insertMany([{ a: 1, b: 1 }]);
-      const dataMigration = new DataMigration<DmDemoCollection>({
+      const dataMigration = new MongoBulkDataMigration<DmDemoCollection>({
         ...DM_DEFAULT_SETUP,
         projection: { a: 1, b: 1 },
         update: ({ a, b }) => ({ $set: { a: a + b } }),
@@ -142,7 +142,7 @@ describe('DataMigration', () => {
       const insertedDocuments = await collection
         .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
         .toArray();
-      const dataMigration = new DataMigration({
+      const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         update: { $unset: { key: 1 } },
       });
@@ -165,7 +165,7 @@ describe('DataMigration', () => {
       const insertedDocuments = await collection
         .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
         .toArray();
-      const dataMigration = new DataMigration({
+      const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         update: (doc: any) => ({ $set: { a: doc.a.b } }),
       });
@@ -186,7 +186,7 @@ describe('DataMigration', () => {
       const insertedDocuments = await collection
         .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
         .toArray();
-      const dataMigration = new DataMigration({
+      const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         query: { key: 2 },
         update: DELETE_OPERATION,
@@ -219,7 +219,7 @@ describe('DataMigration', () => {
       const insertedDocuments = await collection
         .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
         .toArray();
-      const dataMigration = new DataMigration({
+      const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         update: { $set: { key: 2 } },
       });
@@ -233,7 +233,7 @@ describe('DataMigration', () => {
 
     it('should clean the backup data', async () => {
       await collection.insertMany([{ other: 1 }]);
-      const dataMigration = new DataMigration({
+      const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         update: { $set: { key: 2 } },
       });
@@ -258,7 +258,7 @@ describe('DataMigration', () => {
 
       it('should restore a nested value', async () => {
         await collection.insertMany([sampleDocument]);
-        const dataMigration = new DataMigration({
+        const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           query: { 'nested.key': 'initial' },
           update: { $set: { 'nested.key': 'updated' } },
@@ -273,7 +273,7 @@ describe('DataMigration', () => {
 
       it('should not restore non-projected sibling values', async () => {
         const { insertedIds } = await collection.insertMany([sampleDocument]);
-        const dataMigration = new DataMigration({
+        const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           projection: { 'nested.key': 1 },
           query: { 'nested.key': 'initial' },
@@ -300,7 +300,7 @@ describe('DataMigration', () => {
 
       it('should unset a non existing root key created by in a nested $set', async () => {
         await collection.insertMany([sampleDocument]);
-        const dataMigration = new DataMigration({
+        const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           update: { $set: { 'new.deep.key': "drop 'new'" } },
         });
@@ -314,7 +314,7 @@ describe('DataMigration', () => {
 
       it('should unset a non existing nested key created by in a sub nested $set', async () => {
         await collection.insertMany([sampleDocument]);
-        const dataMigration = new DataMigration({
+        const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           projection: { nested: 1 },
           update: { $set: { 'nested.new.key': "drop 'nested.new'" } },
@@ -329,7 +329,7 @@ describe('DataMigration', () => {
 
       it('should restore dropped nested keys', async () => {
         await collection.insertMany([sampleDocument]);
-        const dataMigration = new DataMigration({
+        const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           projection: { nested: 1 },
           query: { 'nested.key': 'initial' },
@@ -354,7 +354,7 @@ describe('DataMigration', () => {
         const insertedDocuments = await collection
           .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
           .toArray();
-        const dataMigration = new DataMigration({
+        const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           query: [
             {
@@ -426,7 +426,7 @@ describe('DataMigration', () => {
       });
 
       it('should reject rollback when validation is invalid', async () => {
-        const dataMigration = new DataMigration({
+        const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           collectionName: 'sampleCollection',
           options: {},
@@ -441,7 +441,7 @@ describe('DataMigration', () => {
       });
 
       it('should disable validation for the rollback process if specified', async () => {
-        const dataMigration = new DataMigration({
+        const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           collectionName: 'sampleCollection',
           options: { bypassRollbackValidation: true },
@@ -467,7 +467,7 @@ describe('DataMigration', () => {
         const insertedDocuments = await collection
           .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
           .toArray();
-        const dataMigration = new DataMigration({
+        const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           options: { bypassRollbackValidation: true },
           rollback: () => ({ $unset: { nested: 1 } }),
@@ -489,7 +489,7 @@ describe('DataMigration', () => {
         const insertedDocuments = await collection
           .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
           .toArray();
-        const dataMigration = new DataMigration({
+        const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           rollback: (doc: any) => ({ $set: { double: doc.value * 2 } }),
           update: { $set: { double: 5 } },
