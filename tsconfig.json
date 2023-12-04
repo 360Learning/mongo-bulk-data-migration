@@ -3,6 +3,7 @@
     "target": "es2022",
     "module": "commonjs",
     "lib": ["ES2022"],
+    "esModuleInterop": true,
     "moduleResolution": "node",
     "rootDir": ".",
     "outDir": "dist",
@@ -18,5 +19,10 @@
     "noImplicitThis": false,
     "strictNullChecks": false
   },
-  "include": ["jest.config.ts", "src/**/*", "__tests__/**/*"]
+  "include": [
+    "jest.config.ts",
+    "src/**/*",
+    "__tests__/**/*",
+    "__testsUtils__/**/*"
+  ]
 }
