@@ -1,7 +1,5 @@
 import _ from 'lodash';
 
-import { MongoBulkWriteError } from 'mongodb';
-
 import type { LoggerInterface } from '../types';
 import type {
   ObjectId,
@@ -92,7 +90,10 @@ export abstract class AbstractBulkOperationResults<TSchema extends Document> {
     }
 
     const bulkResponse = await this.bulk.execute().catch((err) => {
-      if (continueOnBulkWriteError && err instanceof MongoBulkWriteError) {
+      if (
+        continueOnBulkWriteError &&
+        err?.constructor.name === 'MongoBulkWriteError'
+      ) {
         return err.result;
       }
       throw err;
@@ -100,14 +101,14 @@ export abstract class AbstractBulkOperationResults<TSchema extends Document> {
 
     // map data for backward compatibility when migrating from driver v4 to v5
     const resultPartial = {
-      insertedIds: Object.values(bulkResponse.insertedIds),
+      insertedIds: Object.values(bulkResponse.insertedIds) as ObjectId[],
       nInserted: bulkResponse.insertedCount,
       nMatched: bulkResponse.matchedCount,
       nModified: bulkResponse.modifiedCount,
       nRemoved: bulkResponse.deletedCount,
       nUpserted: bulkResponse.upsertedCount,
       ok: bulkResponse.ok,
-      upserted: Object.values(bulkResponse.upsertedIds),
+      upserted: Object.values(bulkResponse.upsertedIds) as ObjectId[],
       writeConcernErrors: [bulkResponse.getWriteConcernError()].filter(
         isDefined,
       ),

@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import type { Collection, Db, Document, ObjectId } from 'mongodb';
 import { MongoBulkDataMigration, DELETE_OPERATION } from '../src';
 import { INITIAL_BULK_INFOS } from '../src/lib/AbstractBulkOperationResults';
@@ -356,8 +357,7 @@ describe('DataMigration', () => {
     });
 
     describe('options.continueOnBulkWriteError set to true', () => {
-      // TODO handle MongoBulkWriteError
-      it.skip('should continue on MongoBulkWriteError and keep writeErrors', async () => {
+      it('should continue on MongoBulkWriteError and keep writeErrors', async () => {
         await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 2 }]);
         const dataMigration = new MongoBulkDataMigration<Document>({
           ...DM_DEFAULT_SETUP,
@@ -373,12 +373,17 @@ describe('DataMigration', () => {
         const updatePromise = dataMigration.update();
 
         const updateResponse = await updatePromise;
-        expect(updateResponse).toContain({
-          nMatched: 3,
-          nModified: 1,
-          ok: 1,
-        });
+        expect(_.pick(updateResponse, ['nMatched', 'nModified', 'ok'])).toEqual(
+          {
+            nMatched: 3,
+            nModified: 1,
+            ok: 1,
+          },
+        );
         expect(updateResponse.writeErrors.length).toEqual(2);
+        expect(updateResponse.writeErrors[0].err.errmsg).toContain(
+          "The dollar ($) prefixed field '$nonAllowedChar' in '$nonAllowedChar' is not allowed in the context",
+        );
       });
     });
   });
