@@ -57,7 +57,7 @@ function assertDeepEquals(expect: any, input: any, expected: any) {
   }
 
   const isJest = !!expect.anything;
-  const isChai = !!expect.to;
+  const isChai = !!expect.fail;
   if (!isJest && !isChai) {
     throw new Error(
       'MongoBulkDataMigration error: expect lib does not look to be Jest or Chai supported libs',

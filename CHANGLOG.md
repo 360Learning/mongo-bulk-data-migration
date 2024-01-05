@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1 (2024-01-05)
+
+- Improve `doRollbackAndAssertForInitialState` for chai recognition
+
+
 ## 1.0.0 (2024-01-05)
 
 Initial revision (360L internal script we use).

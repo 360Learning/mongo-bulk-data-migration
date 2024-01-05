@@ -54,23 +54,71 @@ Biggest features making DM powerful:
 
 ## Usage & doc
 
-### How does it work?
+### `update()` and `rollback()`
+Main interface to use in your migration script CLI.
 
-Overall steps:
+```ts
+import { MongoBulkDataMigration } from "@360-l/mongo-bulk-data-migration";
 
-1. Create an instance to `MongoBulkDataMigration` with the migration config
+const migration = new MongoBulkDataMigration(...);
 
-- Set a <migration_id> and at least mandatory type-safe parameters (`db`, `query`, `projection`, `update`),
-- `const migrationInstance = new MongoBulkDataMigration({ ... })`
+// Do the update
+await migration.update();
 
-2. Run an update with `migrationInstance.update()`, which does a simple thing:
+// Revert updated properties (only) in all updated documents
+await migration.rollback();
+```
 
-- A cursor fetches documents to update, computes an update operation, and stops when a bulk is ready,
-- A first bulk will store back-up documents in the `_rollback_<migration_id>` collection
-- A second bulk will update/delete docs
-- logs will be displayed only after every bulk operations with the progress percent.
+### Simple $set example
 
-3. If anything is wrong, call `#rollback()`
+This migration will set `{ total: 0 }` for every doc not having 0.
 
-- rollback will drop backup once the operation is successful,
+_Note: rollback will automatically unset back total._
+
+```ts
+new MongoBulkDataMigration<Score>({
+    db,
+    id: "scores_set_total",
+    collectionName: "scores",
+    projection: {},
+    query: { total: { $exists: false } },
+    update: { $set: { total: 0 } }
+});
+```
+
+### Simple $set with update callback and projection
+
+This migration will sum 2 projected fields `scoreA` and `scoreB` for all documents (no filter).
+
+_Note: rollback will automatically set back `scoreA` and `scoreB` and reset `total`._
+
+```ts
+new MongoBulkDataMigration<Score>({
+    db,
+    id: "scores_total_new_field",
+    collectionName: "scores",
+    projection: { scoreA: 1, scoreB: 1 },
+    query: {},
+    update: (doc) => { $set: { total: doc.scoreA + doc.scoreB } }
+});
+```
+
+### Delete documents
+
+This migration will delete doc having negative `total`.
+
+_Note: rollback will automatically restore full document._
+
+```ts
+import { MongoBulkDataMigration, DELETE_OPERATION } from "@360-l/mongo-bulk-data-migration";
+...
+new MongoBulkDataMigration<Score>({
+    db,
+    id: "delete_negative_total",
+    collectionName: "scores",
+    projection: {}, // Everything needs to be projected
+    query: { total: { $lt: 0 } },
+    update: DELETE_OPERATION,
+});
+```
 
