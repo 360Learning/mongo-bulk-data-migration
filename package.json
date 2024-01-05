@@ -1,9 +1,11 @@
 {
   "name": "node-typescript-boilerplate",
-  "version": "0.0.0",
-  "description": "Minimalistic boilerplate to quick-start Node.js development in TypeScript.",
+  "version": "1.0.0",
+  "description": "MongoDB bulk data migration for node scripts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "engines": {
-    "node": ">= 18.12 <19"
+    "node": ">= 18.0"
   },
   "devDependencies": {
     "@types/jest": "~29.5",
@@ -38,8 +40,8 @@
   "peerDependencies": {
     "mongodb": "*"
   },
-  "author": "Jakub Synowiec <jsynowiec@users.noreply.github.com>",
-  "license": "Apache-2.0",
+  "author": "Patrick Portal <patrick.portal@360learning.com>",
+  "license": "MIT",
   "volta": {
     "node": "18.12.1"
   },
