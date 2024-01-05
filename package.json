@@ -1,5 +1,5 @@
 {
-  "name": "mongo-bulk-data-migration",
+  "name": "@360-l/mongo-bulk-data-migration",
   "version": "1.0.0",
   "description": "MongoDB bulk data migration for node scripts",
   "main": "./dist/index.js",
@@ -48,5 +48,22 @@
   "dependencies": {
     "lodash": "^4.17.21",
     "p-limit": "^3.1.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/360Learning/mongo-bulk-data-migration.git"
+  },
+  "keywords": [
+    "mongodb",
+    "migration",
+    "bulk",
+    "nodejs",
+    "script",
+    "rollback",
+    "automatic"
+  ],
+  "bugs": {
+    "url": "https://github.com/360Learning/mongo-bulk-data-migration/issues"
+  },
+  "homepage": "https://github.com/360Learning/mongo-bulk-data-migration#readme"
 }
