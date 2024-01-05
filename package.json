@@ -1,5 +1,5 @@
 {
-  "name": "node-typescript-boilerplate",
+  "name": "mongo-bulk-data-migration",
   "version": "1.0.0",
   "description": "MongoDB bulk data migration for node scripts",
   "main": "./dist/index.js",
