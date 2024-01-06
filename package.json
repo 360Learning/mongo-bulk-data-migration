@@ -1,6 +1,6 @@
 {
   "name": "@360-l/mongo-bulk-data-migration",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "MongoDB bulk data migration for node scripts",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
