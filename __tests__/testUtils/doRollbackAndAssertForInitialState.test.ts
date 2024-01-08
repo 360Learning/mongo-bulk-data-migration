@@ -12,6 +12,7 @@ describe('doRollbackAndAssertForInitialState', () => {
 
   afterEach(async () => {
     await dataMigration.clean().catch(() => {});
+    await global.db.collection('sampleCollection').deleteMany({});
   });
 
   function buildMigration(
@@ -37,6 +38,32 @@ describe('doRollbackAndAssertForInitialState', () => {
     const initialUsers = [{ _id: new ObjectId(), prop: 'invalid' }];
     await global.db.collection('sampleCollection').insertOne(initialUsers[0]);
     await dataMigration.update();
+
+    const doRollbackAndAssertForInitialStatePromise =
+      doRollbackAndAssertForInitialState(dataMigration, initialUsers, {
+        expect,
+      });
+
+    await expect(doRollbackAndAssertForInitialStatePromise).resolves.not.toBe(
+      null,
+    );
+  });
+
+  it('should resolve for matching mis-sorted documents', async () => {
+    dataMigration = buildMigration({ prop: 1 });
+    const oid1 = new ObjectId();
+    const oid2 = new ObjectId();
+    const initialUsers = [
+      { _id: oid2, prop: 'invalid' },
+      { _id: oid1, prop: 'invalid' },
+    ];
+    await global.db.collection('sampleCollection').insertOne(initialUsers[0]);
+    await global.db.collection('sampleCollection').insertOne(initialUsers[1]);
+    await dataMigration.update();
+
+    doRollbackAndAssertForInitialState(dataMigration, initialUsers, {
+      expect,
+    });
 
     const doRollbackAndAssertForInitialStatePromise =
       doRollbackAndAssertForInitialState(dataMigration, initialUsers, {

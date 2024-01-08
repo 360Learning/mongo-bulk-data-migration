@@ -26,11 +26,16 @@ export async function doRollbackAndAssertForInitialState(
     .find({})
     .toArray();
 
-  assertDeepEquals(
+  // Test on inserted data [doc1, doc2...]
+  // Note: docs can be mis-sorted
+  assertDeepHaveMembers(
     expect,
     JSON.parse(JSON.stringify(documentsAfterRollback)),
     JSON.parse(JSON.stringify(initialDocuments)),
   );
+
+  // Test on Bulk status { nUpdated: 0, ... }
+  // Test on inserted data
   const expectedPartialRollback = _.pick(
     rollbackStatus,
     Object.keys(expectedRollbackStatus),
@@ -49,7 +54,38 @@ export async function doRollbackAndAssertForInitialState(
   });
 }
 
+function assertDeepHaveMembers(
+  expect: any,
+  effectiveDocs: any,
+  expectedDocs: any,
+) {
+  const compareObjectId = (objA, objB) => {
+    const sortedIds = [objA, objB].sort();
+    return sortedIds[0] === objA ? -1 : 1;
+  };
+  const sortedEffectiveDocs = _.clone(effectiveDocs).sort(
+    (docA: any, docB: any) =>
+      compareObjectId(docA._id.toString(), docB._id.toString()),
+  );
+  const sortedExpectedDocs = _.clone(expectedDocs).sort(
+    (docA: any, docB: any) =>
+      compareObjectId(docA._id.toString(), docB._id.toString()),
+  );
+
+  return assertDeepEquals(expect, sortedEffectiveDocs, sortedExpectedDocs);
+}
+
 function assertDeepEquals(expect: any, input: any, expected: any) {
+  const jestOrChai = assertAndGetChaiOrChai(expect);
+
+  if (jestOrChai === 'jest') {
+    expect(input).toEqual(expected);
+  } else {
+    expect(input).to.deep.equal(expected);
+  }
+}
+
+function assertAndGetChaiOrChai(expect: any) {
   if (expect === null) {
     throw new Error(
       'MongoBulkDataMigration error: expect lib is not set, use setGlobalExpect once in a global pre test hook, or specify it alongside doRollbackAndAssertForInitialState',
@@ -64,9 +100,5 @@ function assertDeepEquals(expect: any, input: any, expected: any) {
     );
   }
 
-  if (isJest) {
-    expect(input).toEqual(expected);
-  } else {
-    expect(input).to.deep.equal(expected);
-  }
+  return isJest ? 'jest' : 'chai';
 }
