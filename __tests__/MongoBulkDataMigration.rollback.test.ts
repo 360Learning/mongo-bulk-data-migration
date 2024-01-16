@@ -7,6 +7,7 @@ import {
 } from '../__testsUtils__/mongoValidation';
 import { MongoBulkDataMigration, DELETE_OPERATION } from '../src';
 import { INITIAL_BULK_INFOS } from '../src/lib/AbstractBulkOperationResults';
+import { LoggerInterface } from '../src/types';
 
 const COLLECTION = 'testCollection';
 const ROLLBACK_COLLECTION = `_rollback_${COLLECTION}_scriptId`;
@@ -30,15 +31,22 @@ describe('MongoBulkDataMigration', () => {
     id: string;
     query: any;
     projection: any;
+    logger: LoggerInterface;
   };
+  let loggerMock: LoggerInterface;
 
   beforeEach(async () => {
     db = global.db;
     collection = db.collection(COLLECTION);
     backupCollection = db.collection(ROLLBACK_COLLECTION);
+    loggerMock = {
+      info: jest.fn(),
+      warn: jest.fn(),
+    };
     DM_DEFAULT_SETUP = {
       collectionName: COLLECTION,
       db,
+      logger: loggerMock,
       id: SCRIPT_ID,
       query: {},
       projection: {},
@@ -271,6 +279,7 @@ describe('MongoBulkDataMigration', () => {
         const rollbackResults = await dataMigration.rollback();
 
         const restoredDocuments = await collection.find().toArray();
+        expect(loggerMock.warn).not.toHaveBeenCalled();
         expect(rollbackResults).toEqual({
           ...INITIAL_BULK_INFOS,
           nMatched: 3,
@@ -306,6 +315,10 @@ describe('MongoBulkDataMigration', () => {
         const rollbackResults = await dataMigration.rollback();
 
         const restoredDocuments = await collection.find().toArray();
+        expect(loggerMock.warn).toHaveBeenCalledWith(
+          { totalNewBackupDocs: 0, totalUpdatedDocument: 3 },
+          "The number of backup documents should be equal to the total updated documents. Check your query is idempotent or ensure you don't use a same migration id for different migrations.",
+        );
         expect(rollbackResults).toEqual({
           ...INITIAL_BULK_INFOS,
           nMatched: 3,

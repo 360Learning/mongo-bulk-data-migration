@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0 (2024-??-??)
+
+- Spot and show warnings if a non idempotent and deterministic update is spotted _(likely 2 scripts share the same id)_
+
 ## 1.1.0 (2024-01-08)
 
 - `doRollbackAndAssertForInitialState` test util won't reject unsorted documents for both Jest & Chai
