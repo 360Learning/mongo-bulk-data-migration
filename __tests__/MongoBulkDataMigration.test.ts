@@ -6,7 +6,7 @@ import { MongoBulkDataMigration } from '../src';
 const COLLECTION = 'testCollection';
 const SCRIPT_ID = 'scriptId';
 
-describe('DataMigration', () => {
+describe('MongoBulkDataMigration', () => {
   let db: Db;
   let collection: Collection;
   let DM_DEFAULT_SETUP: {

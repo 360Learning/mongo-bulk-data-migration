@@ -6,7 +6,7 @@ import { INITIAL_BULK_INFOS } from '../src/lib/AbstractBulkOperationResults';
 const COLLECTION = 'testCollection';
 const SCRIPT_ID = 'scriptId';
 
-describe('DataMigration', () => {
+describe('MongoBulkDataMigration', () => {
   let db: Db;
   let collection: Collection;
   let rollbackCollection: Collection;

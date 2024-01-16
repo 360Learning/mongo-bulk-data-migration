@@ -32,9 +32,9 @@ Prerequisite:
 
 - MBDM can't insert new documents
   _(you can only update or delete documents)_
-- MBDM query has to not match an updated document _(this would break the resume-ability - use an aggregate pipeline for more complex queries)_
 - MBDM can only update **1 collection at a time**
 - MBDM can only update a document **once** for a same migration ID _(unless you clean backup manually in-between)_
+  - queries should ideally not match an already updated document _(for resume-ability)_
 
 ### ✅ MBDM capabilities
 
@@ -116,7 +116,7 @@ new MongoBulkDataMigration<Score>({
 ## ⚙️ Options
 
 ```ts
-new DataMigrations({ ..., options: { ... } })
+new MongoBulkDataMigration({ ..., options: { ... } })
 ```
 
 - `maxBulkSize` (default: 1000): Batch size of of updates to execute. 1000 is a good number. If your updated are huge, consider decreasing it to avoid running high memory. If documents are tiny, 10k might slightly improve performances on huge databases.

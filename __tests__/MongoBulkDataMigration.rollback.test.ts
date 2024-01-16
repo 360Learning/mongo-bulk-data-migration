@@ -247,6 +247,78 @@ describe('MongoBulkDataMigration', () => {
       expect(rollbackCollection).toEqual([]);
     });
 
+    describe('rollback twice', () => {
+      it('[non idempotent scripts] should restore the initial documents', async () => {
+        await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          query: {},
+          update: () => ({ $set: { key: 100 } }),
+        });
+        const updateResults1 = await dataMigration.update();
+        const updateResults2 = await dataMigration.update();
+        expect(updateResults1).toEqual({
+          ...INITIAL_BULK_INFOS,
+          nMatched: 3,
+          nModified: 3,
+        });
+        expect(updateResults2).toEqual({
+          ...INITIAL_BULK_INFOS,
+          nMatched: 3,
+          nModified: 0,
+        });
+
+        const rollbackResults = await dataMigration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+        expect(rollbackResults).toEqual({
+          ...INITIAL_BULK_INFOS,
+          nMatched: 3,
+          nModified: 3,
+        });
+        expect(restoredDocuments.map((doc) => _.omit(doc, '_id'))).toEqual([
+          { key: 1 },
+          { key: 2 },
+          { key: 3 },
+        ]);
+      });
+
+      it('[idempotent scripts] should restore the initial documents of the first migration', async () => {
+        await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          query: {},
+          update: () => ({ $set: { key: Math.random() } }),
+        });
+        const updateResults1 = await dataMigration.update();
+        const updateResults2 = await dataMigration.update();
+        expect(updateResults1).toEqual({
+          ...INITIAL_BULK_INFOS,
+          nMatched: 3,
+          nModified: 3,
+        });
+        expect(updateResults2).toEqual({
+          ...INITIAL_BULK_INFOS,
+          nMatched: 3,
+          nModified: 3, // Non idempotent migration
+        });
+
+        const rollbackResults = await dataMigration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+        expect(rollbackResults).toEqual({
+          ...INITIAL_BULK_INFOS,
+          nMatched: 3,
+          nModified: 3,
+        });
+        expect(restoredDocuments.map((doc) => _.omit(doc, '_id'))).toEqual([
+          { key: 1 },
+          { key: 2 },
+          { key: 3 },
+        ]);
+      });
+    });
+
     describe('Nested keys support', () => {
       const sampleDocument = {
         rootKey: 1,
