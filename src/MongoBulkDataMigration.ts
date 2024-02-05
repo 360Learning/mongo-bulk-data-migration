@@ -17,6 +17,7 @@ import type {
   RollbackDocument,
   RollBackUpdateObject,
   RollbackableUpdate,
+  DMInstanceSpecialOperation,
 } from './types';
 import type { BulkOperationResult } from './lib/AbstractBulkOperationResults';
 import type { DELETE_OPERATION } from './lib/MigrationBulk';
@@ -25,6 +26,8 @@ import type { Collection, ObjectId, WithId, Document } from 'mongodb';
 const DEFAULT_BULK_SIZE = 5000;
 const COUNT_TOO_LONG_WARNING_THRESHOLD_MS = 30000;
 const COLLECTION_VALIDATION_LEVEL = 'moderate';
+/** Fully delete collection, use with operation:DELETE_COLLECTION */
+export const DELETE_COLLECTION = Symbol();
 const defaultLogger = {
   info: (...args: unknown[]) => {
     if (process.env.NODE_ENV === 'test') {
@@ -69,9 +72,14 @@ export default class MongoBulkDataMigration<TSchema extends Document>
     this.collectionName = config.collectionName;
     Object.assign(this.options, { ...config.options });
 
-    const { db, rollback, query, update } = config;
-    const { projection } = config as DMInstanceFilter<TSchema>;
-    this.migrationInfos = { db, projection, rollback, query, update };
+    this.migrationInfos = {
+      db: config.db,
+      operation: (config as DMInstanceSpecialOperation<TSchema>).operation,
+      projection: (config as DMInstanceFilter<TSchema>).projection,
+      rollback: (config as DMInstanceFilter<TSchema>).rollback,
+      query: (config as DMInstanceFilter<TSchema>).query,
+      update: (config as DMInstanceFilter<TSchema>).update,
+    };
 
     this.logger = config.logger ?? defaultLogger;
   }
