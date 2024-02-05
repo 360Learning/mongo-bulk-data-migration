@@ -113,6 +113,14 @@ export default class MongoBulkDataMigration<TSchema extends Document>
     const migrationCollection = this.getCollection();
     const rollbackCollection = await this.getRollbackCollection();
 
+    if (this.migrationInfos.operation === DELETE_COLLECTION) {
+      const status = await this.renameCollection(
+        this.collectionName,
+        this.getRollbackCollectionName(),
+      );
+      return { ok: status ? 1 : 0 } as any;
+    }
+
     await this.lowerValidationLevel('update');
     const { cursor, totalEntries } = await this.getCursorAndCount(
       migrationCollection,
@@ -275,6 +283,14 @@ export default class MongoBulkDataMigration<TSchema extends Document>
   async rollback(): Promise<BulkOperationResult> {
     const collection = this.getCollection();
     const rollbackCollection = await this.getRollbackCollection();
+    if (this.migrationInfos.operation === DELETE_COLLECTION) {
+      const status = await this.renameCollection(
+        this.getRollbackCollectionName(),
+        this.collectionName,
+      );
+      return { ok: status ? 1 : 0 } as any;
+    }
+
     const cursor = rollbackCollection.find({});
     const totalEntries = await rollbackCollection.countDocuments({});
     this.logger.info(
@@ -349,6 +365,16 @@ export default class MongoBulkDataMigration<TSchema extends Document>
       collMod: this.collectionName,
       validationLevel,
     });
+  }
+
+  private async renameCollection(nameBefore: string, nameAfter: string) {
+    try {
+      await this.migrationInfos.db.renameCollection(nameBefore, nameAfter);
+      return true;
+    } catch (err: unknown) {
+      this.logger.warn({ err }, "Couldn't rename collection");
+      return false;
+    }
   }
 
   async clean(): Promise<void> {
