@@ -7,6 +7,7 @@ import type {
   Document,
 } from 'mongodb';
 import type { DELETE_OPERATION } from './lib/MigrationBulk';
+import { DELETE_COLLECTION } from './MongoBulkDataMigration';
 
 export type DataMigrationOptions<TSchema> = {
   /** Disable document validation temporarily on the rollback process */
@@ -43,6 +44,7 @@ export type MongoPipeline = object[];
 
 export type MigrationInfos<TSchema extends Document> = {
   db: Db;
+  operation?: typeof DELETE_COLLECTION;
   projection: FindOptions<TSchema>['projection'];
   rollback?: (backup: RollbackDocument['backup']) => RollBackUpdateObject;
   query: Filter<TSchema> | MongoPipeline;
@@ -55,11 +57,19 @@ export type MigrationInfos<TSchema extends Document> = {
 };
 
 export type DataMigrationConfig<TSchema extends Document> =
+  | DMInstanceSpecialOperation<TSchema>
   | DMInstanceAggregate<TSchema>
   | DMInstanceFilter<TSchema>;
 
 type DMInstanceAggregate<TSchema> = DMInstanceBase<TSchema> & {
   query: MongoPipeline;
+};
+
+export type DMInstanceSpecialOperation<TSchema> = Pick<
+  DMInstanceBase<TSchema>,
+  'db' | 'id' | 'collectionName' | 'logger' | 'options'
+> & {
+  operation: typeof DELETE_COLLECTION;
 };
 
 export type DMInstanceFilter<TSchema extends Document> =
