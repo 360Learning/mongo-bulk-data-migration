@@ -199,6 +199,23 @@ new MongoBulkDataMigration<Score>({
 });
 ```
 
+### Delete a collection (`operation: DELETE_COLLECTION`)
+
+The collection will be renamed to the backup collection.
+When you rollback, the collection will simply be renamed back
+
+```ts
+import { MongoBulkDataMigration, DELETE_OPERATION } from "@360-l/mongo-bulk-data-migration";
+...
+const migration status = new MongoBulkDataMigration<Score>({
+    db,
+    id: "delete_collection_scores",
+    collectionName: "scores",
+    operation: DELETE_OPERATION,
+});
+console.log(status); // { ok: 1 }
+```
+
 ## 🧩 Ease testing
 
 MBDM provides to simplify your tests files. Just writes what you expect, and the util will ensure the database is back to initia state.

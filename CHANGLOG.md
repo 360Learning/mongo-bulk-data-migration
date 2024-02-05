@@ -1,7 +1,8 @@
 # Changelog
 
-## 1.2.0 (2024-??-??)
+## 1.2.0 (2024-02-05)
 
+- Support collection deletion `operation:DELETE_COLLECTION` (and rollback)
 - Spot and show warnings if a non idempotent and deterministic update is spotted _(likely 2 scripts share the same id)_
 
 ## 1.1.0 (2024-01-08)
