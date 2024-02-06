@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0 (2024-??-??)
+
+- Fix issue where unset arrays were not properly restored https://github.com/360Learning/mongo-bulk-data-migration/issues/3
+
 ## 1.2.0 (2024-02-05)
 
 - Support collection deletion `operation:DELETE_COLLECTION` (and rollback)

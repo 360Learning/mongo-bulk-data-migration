@@ -56,6 +56,32 @@ describe('computeRollbackQuery', () => {
         });
       });
 
+      it('should $set an original array value', async () => {
+        const updateQuery = { $unset: { key: 1 } };
+        const backup = { keys: ['value1', 'value2'] };
+
+        const restoreQuery = computeRollbackQuery(updateQuery, backup);
+
+        expect(restoreQuery).toEqual({
+          $set: { keys: ['value1', 'value2'] },
+        });
+      });
+
+      it('should $set an original deep array value', async () => {
+        const updateQuery = { $unset: { 'deep.key': 1 } };
+        const backup = {
+          deep: {
+            keys: ['value1', 'value2'],
+          },
+        };
+
+        const restoreQuery = computeRollbackQuery(updateQuery, backup);
+
+        expect(restoreQuery).toEqual({
+          $set: { 'deep.keys': ['value1', 'value2'] },
+        });
+      });
+
       it('should $set a nested value', async () => {
         const updateQuery = { $unset: { 'nested.key': 1 } };
         const backup = { nested: { key: 'value' } };
