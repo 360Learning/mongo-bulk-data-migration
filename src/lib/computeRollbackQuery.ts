@@ -29,9 +29,25 @@ function computeRollbackSet(
       );
       if (parentKeyToFullyRestore) {
         rollbackSet[parentKeyToFullyRestore] = backup[parentKeyToFullyRestore];
-      } else {
-        rollbackSet[key] = value;
+        return rollbackSet;
       }
+
+      const indexMatch = /(.*)\.(\d+)$/.exec(key);
+      if (indexMatch) {
+        const [_str, nestedPathToArray, index] = indexMatch;
+        if (Array.isArray(_.get(backup, nestedPathToArray))) {
+          if (typeof rollbackSet[nestedPathToArray] === 'undefined') {
+            rollbackSet[nestedPathToArray] = [];
+          }
+          rollbackSet[nestedPathToArray][Number(index)] = value;
+          return rollbackSet;
+        }
+
+        rollbackSet[nestedPathToArray] = value;
+        return rollbackSet;
+      }
+
+      rollbackSet[key] = value;
       return rollbackSet;
     },
     {} as any,

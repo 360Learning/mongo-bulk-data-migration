@@ -162,6 +162,23 @@ describe('MongoBulkDataMigration', () => {
       expect(restoredDocuments).toEqual(insertedDocuments);
     });
 
+    it('should restore a property (array value) removed during migration', async () => {
+      await collection.insertMany([{ keys: [1, 2, 3] }]);
+      const dataMigration = new MongoBulkDataMigration({
+        ...DM_DEFAULT_SETUP,
+        projection: { keys: 1 },
+        update: { $unset: { keys: 1 } },
+      });
+      await dataMigration.update();
+
+      await dataMigration.rollback();
+
+      const restoredDocuments = await collection.find().toArray();
+      expect(restoredDocuments.map((doc) => _.omit(doc, '_id'))).toEqual([
+        { keys: [1, 2, 3] },
+      ]);
+    });
+
     it('should restore to the original deep structure', async () => {
       const insertResult = await collection.insertMany([
         {
