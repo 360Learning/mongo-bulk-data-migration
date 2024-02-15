@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0 (2024-02-15)
+
+- Don't use upsert() for rollback, instead call insert() for deleted documents to ease shard compliancy https://github.com/360Learning/mongo-bulk-data-migration/issues/5
+
 ## 1.3.0 (2024-02-13)
 
 - Fix issue where unset arrays were not properly restored https://github.com/360Learning/mongo-bulk-data-migration/issues/3

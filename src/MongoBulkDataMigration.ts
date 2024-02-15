@@ -1,27 +1,26 @@
 /* eslint-disable no-console */
 import _ from 'lodash';
 import pLimit from 'p-limit';
-import { MigrationBulk } from './lib/MigrationBulk';
+import { DELETE_OPERATION, MigrationBulk } from './lib/MigrationBulk';
 import { BackupBulk } from './lib/BackupBulk';
+import type { BulkOperationResult } from './lib/AbstractBulkOperationResults';
 import { NO_COUNT_AVAILABLE } from './lib/AbstractBulkOperationResults';
 import { RollbackBulk } from './lib/RollbackBulk';
 import { computeRollbackQuery } from './lib/computeRollbackQuery';
 
 import type {
-  DataMigrationOptions,
   DataMigrationConfig,
+  DataMigrationOptions,
   DMInstanceFilter,
+  DMInstanceSpecialOperation,
   LoggerInterface,
   MigrationInfos,
   MongoPipeline,
+  RollbackableUpdate,
   RollbackDocument,
   RollBackUpdateObject,
-  RollbackableUpdate,
-  DMInstanceSpecialOperation,
 } from './types';
-import type { BulkOperationResult } from './lib/AbstractBulkOperationResults';
-import type { DELETE_OPERATION } from './lib/MigrationBulk';
-import type { Collection, ObjectId, WithId, Document } from 'mongodb';
+import type { Collection, Document, ObjectId, WithId } from 'mongodb';
 
 const DEFAULT_BULK_SIZE = 5000;
 const COUNT_TOO_LONG_WARNING_THRESHOLD_MS = 30000;
@@ -308,7 +307,11 @@ export default class MongoBulkDataMigration<TSchema extends Document>
       (await cursor.next()) as unknown as RollbackDocument | null;
     while (rollbackDocument !== null) {
       const updateQuery = await this.getRollbackUpdateQuery(rollbackDocument);
-      bulkRollback.addRollbackOperation(updateQuery, rollbackDocument._id);
+      if (this.migrationInfos.update === DELETE_OPERATION) {
+        bulkRollback.addRollbackFullDocumentOperation(rollbackDocument.backup);
+      } else {
+        bulkRollback.addRollbackOperation(updateQuery, rollbackDocument._id);
+      }
 
       rollbackDocument =
         (await cursor.next()) as unknown as RollbackDocument | null;
