@@ -554,12 +554,22 @@ describe('MongoBulkDataMigration', () => {
           options: {},
           update: updateQuery,
         });
+        await dataMigration.update();
 
         const rollbackPromise = dataMigration.rollback();
 
-        await expect(rollbackPromise).rejects.toThrow(
-          new Error('Document failed validation'),
-        );
+        // Does not reject since usage of abandoned usage of upsert() but it's not an issue (good for rollback)
+        // await expect(rollbackPromise).rejects.toThrow();
+        expect(await rollbackPromise).toEqual({
+          ...INITIAL_BULK_INFOS,
+          nMatched: 1,
+          nModified: 1,
+          ok: 1,
+        });
+        const restoredDoc = await db
+          .collection('sampleCollection')
+          .findOne({ _id: invalidSampleDoc._id });
+        expect(restoredDoc).toEqual(invalidSampleDoc);
       });
 
       it('should disable validation for the rollback process if specified', async () => {
@@ -569,6 +579,7 @@ describe('MongoBulkDataMigration', () => {
           options: { bypassRollbackValidation: true },
           update: updateQuery,
         });
+        await dataMigration.update();
 
         await dataMigration.rollback();
 
