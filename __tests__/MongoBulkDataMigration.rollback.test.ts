@@ -1,6 +1,7 @@
 import _ from 'lodash';
 
-import type { Collection, Db, ObjectId } from 'mongodb';
+import { ObjectId } from 'mongodb';
+import type { Collection, Db } from 'mongodb';
 import {
   disableValidation,
   enableValidation,
@@ -87,6 +88,23 @@ describe('MongoBulkDataMigration', () => {
         { key: 2, other: 1 },
         { key: 3, other: 1 },
       ]);
+    });
+
+    it('should not rollback properties of a deleted document (no upsert)', async () => {
+      const docId = new ObjectId();
+      await collection.insertMany([{ _id: docId, key: 1 }]);
+      const dataMigration = new MongoBulkDataMigration({
+        ...DM_DEFAULT_SETUP,
+        query: { key: 1 },
+        update: { $set: { key: 2 } },
+      });
+
+      await dataMigration.update();
+      await collection.deleteMany({}); // Doc is deleted in between update and rollback
+      await dataMigration.rollback();
+
+      const restoredDocuments = await collection.find().toArray();
+      expect(restoredDocuments).toEqual([]);
     });
 
     it('should restore the projected properties only', async () => {
