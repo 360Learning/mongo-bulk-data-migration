@@ -230,8 +230,10 @@ describe('MongoBulkDataMigration', () => {
       });
       expect(rollbackResults).toEqual({
         ...INITIAL_BULK_INFOS,
-        upserted: [insertedDocuments[1]._id],
-        nUpserted: 1,
+        insertedIds: [insertedDocuments[1]._id],
+        upserted: [],
+        nInserted: 1,
+        nUpserted: 0,
       });
       expect(restoredDocuments).toEqual(insertedDocuments);
     });

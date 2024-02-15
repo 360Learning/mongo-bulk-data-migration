@@ -16,7 +16,13 @@ export class RollbackBulk<
 
   public addRollbackOperation(operation: any, objectId: ObjectId): this {
     this.totalBulkOps++;
-    this.bulk.find({ _id: objectId }).upsert().update(operation);
+    this.bulk.find({ _id: objectId }).update(operation);
+    return this;
+  }
+
+  public addRollbackFullDocumentOperation(document: any): this {
+    this.totalBulkOps++;
+    this.bulk.insert(document);
     return this;
   }
 }
