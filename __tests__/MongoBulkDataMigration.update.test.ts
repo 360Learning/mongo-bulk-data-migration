@@ -392,7 +392,7 @@ describe('MongoBulkDataMigration', () => {
     it('should perform the delete operation', async () => {
       await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
       const dataMigration = new MongoBulkDataMigration({
-        ...DM_DEFAULT_SETUP,
+        ..._.omit(DM_DEFAULT_SETUP, "projection"),
         query: { key: 2 },
         update: DELETE_OPERATION,
       });
