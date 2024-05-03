@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1 (2024-05-03)
+
+- Make `projection` not mandatory in typing when using `DELETE_OPERATION`
+
 ## 1.4.0 (2024-02-15)
 
 - Don't use upsert() for rollback, instead call insert() for deleted documents to ease shard compliancy https://github.com/360Learning/mongo-bulk-data-migration/issues/5
