@@ -58,8 +58,14 @@ export type MigrationInfos<TSchema extends Document> = {
 
 export type DataMigrationConfig<TSchema extends Document> =
   | DMInstanceSpecialOperation<TSchema>
+  | DMInstanceSpecialOperationDropDocument<TSchema>
   | DMInstanceAggregate<TSchema>
-  | DMInstanceFilter<TSchema>;
+  | DMInstanceFilter<TSchema>
+  ;
+
+type DMInstanceSpecialOperationDropDocument<TSchema> = Omit<DMInstanceFilter<TSchema>, "projection"> & {
+  update: typeof DELETE_OPERATION
+}
 
 type DMInstanceAggregate<TSchema> = DMInstanceBase<TSchema> & {
   query: MongoPipeline;
