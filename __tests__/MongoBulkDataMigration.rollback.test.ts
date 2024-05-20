@@ -635,5 +635,26 @@ describe('MongoBulkDataMigration', () => {
         expect(restoredDocuments).toEqual(insertedDocuments);
       });
     });
+
+    describe('options.noBackup set to true', () => {
+      it('should be rollbackable using a rollback query with no param', async () => {
+        const insertResult = await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 2 }]);
+        const insertedDocuments = await collection
+          .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
+          .toArray();
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          options: { noBackup: true },
+          update: { $set: { value: 10 }},
+          rollback: () => ({ $unset: { value: 1 }})
+        });
+
+        await dataMigration.update();
+        await dataMigration.rollback();
+        
+        const restoredDocuments = await collection.find().toArray();
+        expect(restoredDocuments).toEqual(insertedDocuments);
+      });
+    });
   });
 });

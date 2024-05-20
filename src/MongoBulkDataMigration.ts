@@ -53,6 +53,7 @@ export default class MongoBulkDataMigration<TSchema extends Document>
     dontCount: false,
     maxBulkSize: DEFAULT_BULK_SIZE,
     maxConcurrentUpdateCalls: 10,
+    noBackup: false,
     throttle: 0,
   };
 
@@ -245,11 +246,15 @@ export default class MongoBulkDataMigration<TSchema extends Document>
       const updateQuery = _.isFunction(this.migrationInfos.update)
         ? await this.migrationInfos.update(_.cloneDeep(document))
         : this.migrationInfos.update;
-      const backupDocument = this.buildBackupDocument(
-        document,
-        updateQuery as MigrationInfos<TSchema>['update'],
-      );
-      bulkBackup.addInsertOperation(document, backupDocument);
+
+      if(! this.options.noBackup) {
+        const backupDocument = this.buildBackupDocument(
+          document,
+          updateQuery as MigrationInfos<TSchema>['update'],
+        );
+        bulkBackup.addInsertOperation(document, backupDocument);
+      }
+
       bulkMigration.addUpdateOrRemoveOperation(
         updateQuery,
         document._id as ObjectId,
@@ -288,6 +293,22 @@ export default class MongoBulkDataMigration<TSchema extends Document>
         this.collectionName,
       );
       return { ok: status ? 1 : 0 } as any;
+    }
+
+    if(this.options.noBackup) {
+      const result = await collection.updateMany({}, this.migrationInfos.rollback());
+      return {
+        ok: result.acknowledged ? 1 : 0,
+        insertedIds:  [],
+        nInserted: 0,
+        nMatched: result.matchedCount,
+        nModified: result.modifiedCount,
+        nRemoved: 0,
+        nUpserted: 0,
+        upserted: [],
+        writeConcernErrors: [],
+        writeErrors: [],
+      }
     }
 
     const cursor = rollbackCollection.find({});

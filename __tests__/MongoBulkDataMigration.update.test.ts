@@ -386,6 +386,22 @@ describe('MongoBulkDataMigration', () => {
         );
       });
     });
+
+    describe('options.noBackup set to true', () => {
+      it('should not insert any backup documents', async () => {
+        await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 2 }]);
+        const dataMigration = new MongoBulkDataMigration<Document>({
+          ...DM_DEFAULT_SETUP,
+          options: { noBackup: true },
+          update: { $set: { value: 10 }}
+        });
+
+        await dataMigration.update();
+        
+        const rollbackCollectionSize = await rollbackCollection.count();
+        expect(rollbackCollectionSize).toEqual(0);
+      });
+    })
   });
 
   describe('#delete', () => {

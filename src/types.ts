@@ -22,6 +22,8 @@ export type DataMigrationOptions<TSchema> = {
   maxBulkSize: number;
   /** Maximum of update function called simultaneously */
   maxConcurrentUpdateCalls: number;
+  /** Deactivate the automatic backup logic */
+  noBackup: boolean;
   /** Restricted projection which will be backed up - use this if you need all `projection` keys to compute the update, but you are editing a subset */
   projectionBackupFilter?: Array<keyof TSchema>;
   /** Idle time (in ms) after a bulk write - use this to decrease Database resource usage */
@@ -46,7 +48,7 @@ export type MigrationInfos<TSchema extends Document> = {
   db: Db;
   operation?: typeof DELETE_COLLECTION;
   projection: FindOptions<TSchema>['projection'];
-  rollback?: (backup: RollbackDocument['backup']) => RollBackUpdateObject;
+  rollback?: (backup?: RollbackDocument['backup']) => RollBackUpdateObject;
   query: Filter<TSchema> | MongoPipeline;
   update:
     | UpdateFilter<TSchema>
