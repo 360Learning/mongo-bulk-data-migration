@@ -387,12 +387,12 @@ describe('MongoBulkDataMigration', () => {
       });
     });
 
-    describe('options.noBackup set to true', () => {
+    describe('options.rollbackable set to false', () => {
       it('should not insert any backup documents', async () => {
         await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 2 }]);
         const dataMigration = new MongoBulkDataMigration<Document>({
           ...DM_DEFAULT_SETUP,
-          options: { noBackup: true },
+          options: { rollbackable: false },
           update: { $set: { value: 10 }}
         });
 

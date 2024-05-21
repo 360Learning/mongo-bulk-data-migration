@@ -53,7 +53,7 @@ export default class MongoBulkDataMigration<TSchema extends Document>
     dontCount: false,
     maxBulkSize: DEFAULT_BULK_SIZE,
     maxConcurrentUpdateCalls: 10,
-    noBackup: false,
+    rollbackable: true,
     throttle: 0,
   };
 
@@ -247,7 +247,7 @@ export default class MongoBulkDataMigration<TSchema extends Document>
         ? await this.migrationInfos.update(_.cloneDeep(document))
         : this.migrationInfos.update;
 
-      if(! this.options.noBackup) {
+      if(this.options.rollbackable) {
         const backupDocument = this.buildBackupDocument(
           document,
           updateQuery as MigrationInfos<TSchema>['update'],
@@ -295,7 +295,7 @@ export default class MongoBulkDataMigration<TSchema extends Document>
       return { ok: status ? 1 : 0 } as any;
     }
 
-    if(this.options.noBackup) {
+    if(! this.options.rollbackable) {
       const result = await collection.updateMany({}, this.migrationInfos.rollback());
       return {
         ok: result.acknowledged ? 1 : 0,
