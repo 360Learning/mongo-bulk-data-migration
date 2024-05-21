@@ -642,16 +642,20 @@ describe('MongoBulkDataMigration', () => {
         const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           options: { rollbackable: false },
-          update: { $set: { value: 10 }}
+          update: { $set: { value: 10 } },
         });
 
         await dataMigration.update();
         await dataMigration.rollback();
-        
+
         const updatedDocuments = await collection
           .find({}, { projection: { _id: 0 } })
           .toArray();
-        expect(updatedDocuments).toEqual([{ key: 1, value:10 }, { key: 2, value: 10 }, { key: 2, value: 10 }]);
+        expect(updatedDocuments).toEqual([
+          { key: 1, value: 10 },
+          { key: 2, value: 10 },
+          { key: 2, value: 10 },
+        ]);
       });
     });
   });

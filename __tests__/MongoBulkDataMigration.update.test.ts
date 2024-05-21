@@ -393,22 +393,22 @@ describe('MongoBulkDataMigration', () => {
         const dataMigration = new MongoBulkDataMigration<Document>({
           ...DM_DEFAULT_SETUP,
           options: { rollbackable: false },
-          update: { $set: { value: 10 }}
+          update: { $set: { value: 10 } },
         });
 
         await dataMigration.update();
-        
+
         const rollbackCollectionSize = await rollbackCollection.count();
         expect(rollbackCollectionSize).toEqual(0);
       });
-    })
+    });
   });
 
   describe('#delete', () => {
     it('should perform the delete operation', async () => {
       await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
       const dataMigration = new MongoBulkDataMigration({
-        ..._.omit(DM_DEFAULT_SETUP, "projection"),
+        ..._.omit(DM_DEFAULT_SETUP, 'projection'),
         query: { key: 2 },
         update: DELETE_OPERATION,
       });

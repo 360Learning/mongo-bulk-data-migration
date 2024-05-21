@@ -247,7 +247,7 @@ export default class MongoBulkDataMigration<TSchema extends Document>
         ? await this.migrationInfos.update(_.cloneDeep(document))
         : this.migrationInfos.update;
 
-      if(this.options.rollbackable) {
+      if (this.options.rollbackable) {
         const backupDocument = this.buildBackupDocument(
           document,
           updateQuery as MigrationInfos<TSchema>['update'],
@@ -285,7 +285,9 @@ export default class MongoBulkDataMigration<TSchema extends Document>
   }
 
   async rollback(): Promise<BulkOperationResult> {
-    if(! this.options.rollbackable) { return { ok: 1 } as any; }
+    if (!this.options.rollbackable) {
+      return { ok: 1 } as any;
+    }
 
     const collection = this.getCollection();
     const rollbackCollection = await this.getRollbackCollection();
