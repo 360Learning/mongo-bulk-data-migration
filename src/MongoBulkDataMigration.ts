@@ -285,6 +285,8 @@ export default class MongoBulkDataMigration<TSchema extends Document>
   }
 
   async rollback(): Promise<BulkOperationResult> {
+    if(! this.options.rollbackable) { return { ok: 1 } as any; }
+
     const collection = this.getCollection();
     const rollbackCollection = await this.getRollbackCollection();
     if (this.migrationInfos.operation === DELETE_COLLECTION) {
@@ -293,22 +295,6 @@ export default class MongoBulkDataMigration<TSchema extends Document>
         this.collectionName,
       );
       return { ok: status ? 1 : 0 } as any;
-    }
-
-    if(! this.options.rollbackable) {
-      const result = await collection.updateMany({}, this.migrationInfos.rollback());
-      return {
-        ok: result.acknowledged ? 1 : 0,
-        insertedIds:  [],
-        nInserted: 0,
-        nMatched: result.matchedCount,
-        nModified: result.modifiedCount,
-        nRemoved: 0,
-        nUpserted: 0,
-        upserted: [],
-        writeConcernErrors: [],
-        writeErrors: [],
-      }
     }
 
     const cursor = rollbackCollection.find({});

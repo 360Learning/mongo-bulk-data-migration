@@ -637,23 +637,21 @@ describe('MongoBulkDataMigration', () => {
     });
 
     describe('options.rollbackable set to false', () => {
-      it('should be rollbackable using a rollback query with no param', async () => {
-        const insertResult = await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 2 }]);
-        const insertedDocuments = await collection
-          .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-          .toArray();
+      it('should not rollback anything', async () => {
+        await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 2 }]);
         const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           options: { rollbackable: false },
-          update: { $set: { value: 10 }},
-          rollback: () => ({ $unset: { value: 1 }})
+          update: { $set: { value: 10 }}
         });
 
         await dataMigration.update();
         await dataMigration.rollback();
         
-        const restoredDocuments = await collection.find().toArray();
-        expect(restoredDocuments).toEqual(insertedDocuments);
+        const updatedDocuments = await collection
+          .find({}, { projection: { _id: 0 } })
+          .toArray();
+        expect(updatedDocuments).toEqual([{ key: 1, value:10 }, { key: 2, value: 10 }, { key: 2, value: 10 }]);
       });
     });
   });
