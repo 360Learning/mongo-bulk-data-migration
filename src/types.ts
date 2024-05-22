@@ -24,7 +24,7 @@ export type DataMigrationOptions<TSchema> = {
   maxConcurrentUpdateCalls: number;
   /** Restricted projection which will be backed up - use this if you need all `projection` keys to compute the update, but you are editing a subset */
   projectionBackupFilter?: Array<keyof TSchema>;
-  /** Keep the automatic rollback logic */
+  /** When off, won't backup document and will silently do nothing at rollback procedure */
   rollbackable: boolean;
   /** Idle time (in ms) after a bulk write - use this to decrease Database resource usage */
   throttle: number;
