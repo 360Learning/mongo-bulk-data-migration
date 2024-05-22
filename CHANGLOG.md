@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.2 (2024-05-22)
+
+- Add the option `rollbackable` that is faster for update-only scripts
+  - Its default value is `true`
+  - When set to `false`, calling `update` will not inserted any document in the rollback collection
+  - When set to `false`, calling `rollback` will not do anything
+
 ## 1.4.1 (2024-05-03)
 
 - Make `projection` not mandatory in typing when using `DELETE_OPERATION`
