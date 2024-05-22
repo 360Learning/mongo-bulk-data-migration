@@ -24,6 +24,8 @@ export type DataMigrationOptions<TSchema> = {
   maxConcurrentUpdateCalls: number;
   /** Restricted projection which will be backed up - use this if you need all `projection` keys to compute the update, but you are editing a subset */
   projectionBackupFilter?: Array<keyof TSchema>;
+  /** When off, won't backup document and will silently do nothing at rollback procedure */
+  rollbackable: boolean;
   /** Idle time (in ms) after a bulk write - use this to decrease Database resource usage */
   throttle: number;
 };
@@ -46,7 +48,7 @@ export type MigrationInfos<TSchema extends Document> = {
   db: Db;
   operation?: typeof DELETE_COLLECTION;
   projection: FindOptions<TSchema>['projection'];
-  rollback?: (backup: RollbackDocument['backup']) => RollBackUpdateObject;
+  rollback?: (backup?: RollbackDocument['backup']) => RollBackUpdateObject;
   query: Filter<TSchema> | MongoPipeline;
   update:
     | UpdateFilter<TSchema>
@@ -60,12 +62,14 @@ export type DataMigrationConfig<TSchema extends Document> =
   | DMInstanceSpecialOperation<TSchema>
   | DMInstanceSpecialOperationDropDocument<TSchema>
   | DMInstanceAggregate<TSchema>
-  | DMInstanceFilter<TSchema>
-  ;
+  | DMInstanceFilter<TSchema>;
 
-type DMInstanceSpecialOperationDropDocument<TSchema> = Omit<DMInstanceFilter<TSchema>, "projection"> & {
-  update: typeof DELETE_OPERATION
-}
+type DMInstanceSpecialOperationDropDocument<TSchema> = Omit<
+  DMInstanceFilter<TSchema>,
+  'projection'
+> & {
+  update: typeof DELETE_OPERATION;
+};
 
 type DMInstanceAggregate<TSchema> = DMInstanceBase<TSchema> & {
   query: MongoPipeline;

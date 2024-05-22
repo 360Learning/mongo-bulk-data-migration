@@ -53,6 +53,7 @@ export default class MongoBulkDataMigration<TSchema extends Document>
     dontCount: false,
     maxBulkSize: DEFAULT_BULK_SIZE,
     maxConcurrentUpdateCalls: 10,
+    rollbackable: true,
     throttle: 0,
   };
 
@@ -245,11 +246,15 @@ export default class MongoBulkDataMigration<TSchema extends Document>
       const updateQuery = _.isFunction(this.migrationInfos.update)
         ? await this.migrationInfos.update(_.cloneDeep(document))
         : this.migrationInfos.update;
-      const backupDocument = this.buildBackupDocument(
-        document,
-        updateQuery as MigrationInfos<TSchema>['update'],
-      );
-      bulkBackup.addInsertOperation(document, backupDocument);
+
+      if (this.options.rollbackable) {
+        const backupDocument = this.buildBackupDocument(
+          document,
+          updateQuery as MigrationInfos<TSchema>['update'],
+        );
+        bulkBackup.addInsertOperation(document, backupDocument);
+      }
+
       bulkMigration.addUpdateOrRemoveOperation(
         updateQuery,
         document._id as ObjectId,
@@ -280,6 +285,11 @@ export default class MongoBulkDataMigration<TSchema extends Document>
   }
 
   async rollback(): Promise<BulkOperationResult> {
+    if (!this.options.rollbackable) {
+      this.logger.warn('Calling rollback() on a non rollbackable script');
+      return { ok: 1 } as any;
+    }
+
     const collection = this.getCollection();
     const rollbackCollection = await this.getRollbackCollection();
     if (this.migrationInfos.operation === DELETE_COLLECTION) {
