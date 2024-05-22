@@ -286,6 +286,7 @@ export default class MongoBulkDataMigration<TSchema extends Document>
 
   async rollback(): Promise<BulkOperationResult> {
     if (!this.options.rollbackable) {
+      this.logger.warn('Calling rollback() on a non rollbackable script');
       return { ok: 1 } as any;
     }
 
