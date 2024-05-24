@@ -191,11 +191,12 @@ new MongoBulkDataMigration<Score>({
     ],
     update: (doc) => ({
         $set: {
-          totalGames: doc.games.value
+            totalGames: doc.games.value
         }
     }),
     options: {
-        projectionBackupFilter: ["totalGames"] // Necessary to save only totalGames, not games.value in the backup document
+        // Necessary to save only `totalGames`, and not auto-restore uncexisting `games` field
+        projectionBackupFilter: ["totalGames"]
     }
 });
 ```
