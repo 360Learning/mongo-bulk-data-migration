@@ -190,8 +190,9 @@ new MongoBulkDataMigration<Score>({
         { $match: { "games.value": "xxx" } },
     ],
     update: (doc) => ({
-        ...doc,
-        totalGames: doc.games.value
+        $set: {
+          totalGames: doc.games.value
+        }
     }),
     options: {
         projectionBackupFilter: ["totalGames"] // Necessary to save only totalGames, not games.value in the backup document
