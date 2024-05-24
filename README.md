@@ -185,7 +185,7 @@ new MongoBulkDataMigration<Score>({
     id: "delete_negative_total",
     collectionName: "scores",
     query: [
-        { $lookup: { localField: "games", ... } },
+        { $lookup: { as: "games", ... } },
         { $match: { "games.value": "xxx" } },
         { $project: { "games.value": 1, totalGames: 1, _id: 1 } },
     },
