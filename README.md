@@ -184,17 +184,19 @@ new MongoBulkDataMigration<Score>({
     db,
     id: "delete_negative_total",
     collectionName: "scores",
+    projection: { "games.value": 1, totalGames: 1 },
     query: [
-        { $lookup: { localField: "games", ... } },
+        { $lookup: { as: "games", ... } },
         { $match: { "games.value": "xxx" } },
-        { $project: { "games.value": 1, totalGames: 1, _id: 1 } },
-    },
+    ],
     update: (doc) => ({
-        ...doc,
-        totalGames: doc.games.value
+        $set: {
+            totalGames: doc.games.value
+        }
     }),
     options: {
-        projectionBackupFilter: ["totalGames"] // Necessary to save only totalGames, not games.value in the backup document
+        // Necessary to save only `totalGames`, and not auto-restore uncexisting `games` field
+        projectionBackupFilter: ["totalGames"]
     }
 });
 ```
