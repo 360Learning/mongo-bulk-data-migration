@@ -207,13 +207,13 @@ The collection will be renamed to the backup collection.
 When you rollback, the collection will simply be renamed back
 
 ```ts
-import { MongoBulkDataMigration, DELETE_OPERATION } from "@360-l/mongo-bulk-data-migration";
+import { MongoBulkDataMigration, DELETE_COLLECTION } from "@360-l/mongo-bulk-data-migration";
 ...
 const migration status = new MongoBulkDataMigration<Score>({
     db,
     id: "delete_collection_scores",
     collectionName: "scores",
-    operation: DELETE_OPERATION,
+    operation: DELETE_COLLECTION,
 });
 console.log(status); // { ok: 1 }
 ```
