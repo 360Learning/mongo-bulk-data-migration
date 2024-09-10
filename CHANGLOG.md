@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.3 (2024-09-10)
+
+- Fix issues when the option `rollbackable` is `false`
+  - Correctly compute bulk size, to decide when executing it
+  - Do not warn because the number of rollback documents is 0
+
 ## 1.4.2 (2024-05-22)
 
 - Add the option `rollbackable` that is faster for update-only scripts
