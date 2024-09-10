@@ -2,6 +2,8 @@ import _ from 'lodash';
 import type { Collection, Db, Document, ObjectId } from 'mongodb';
 import { MongoBulkDataMigration, DELETE_OPERATION } from '../src';
 import { INITIAL_BULK_INFOS } from '../src/lib/AbstractBulkOperationResults';
+import { LoggerInterface } from '../src/types';
+
 
 const COLLECTION = 'testCollection';
 const SCRIPT_ID = 'scriptId';
@@ -15,6 +17,7 @@ describe('MongoBulkDataMigration', () => {
     db: Db;
     id: string;
     query: any;
+    logger: LoggerInterface;
     projection: any;
   };
 
@@ -22,14 +25,20 @@ describe('MongoBulkDataMigration', () => {
     db = global.db;
     collection = db.collection(COLLECTION);
     rollbackCollection = db.collection('_rollback_testCollection_scriptId');
+    loggerMock = {
+      info: jest.fn(),
+      warn: jest.fn(),
+    };
     DM_DEFAULT_SETUP = {
       collectionName: COLLECTION,
       db,
       id: SCRIPT_ID,
       query: {},
+      logger: loggerMock,
       projection: {},
     };
   });
+  let loggerMock: LoggerInterface;
 
   afterEach(async () => {
     await db.collection('testCollection').deleteMany({});
@@ -400,6 +409,7 @@ describe('MongoBulkDataMigration', () => {
 
         const rollbackCollectionSize = await rollbackCollection.count();
         expect(rollbackCollectionSize).toEqual(0);
+        expect(loggerMock.warn).not.toHaveBeenCalled();
       });
     });
   });
