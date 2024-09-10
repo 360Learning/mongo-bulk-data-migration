@@ -158,11 +158,7 @@ export default class MongoBulkDataMigration<TSchema extends Document>
       updatePromises.push(bulkUpdateWrappedPromise);
 
       document = (await cursor.next()) as WithId<TSchema> | null;
-      const totalIncludingPendingBulks =
-        bulkBackup.size +
-        updatePromiseLimiter.activeCount +
-        updatePromiseLimiter.pendingCount;
-      if (!document || totalIncludingPendingBulks >= this.options.maxBulkSize) {
+      if (!document || updatePromises.length >= this.options.maxBulkSize) {
         await Promise.all(updatePromises);
         const backupRes = (await bulkBackup.execute()).getResults();
         const updateRes = (
