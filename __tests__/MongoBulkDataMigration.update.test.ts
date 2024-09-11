@@ -1,9 +1,8 @@
 import _ from 'lodash';
-import type { Collection, Db, Document, ObjectId } from 'mongodb';
+import type { Collection, Db, Document, ObjectId, UpdateFilter } from 'mongodb';
 import { MongoBulkDataMigration, DELETE_OPERATION } from '../src';
 import { INITIAL_BULK_INFOS } from '../src/lib/AbstractBulkOperationResults';
 import { LoggerInterface } from '../src/types';
-
 
 const COLLECTION = 'testCollection';
 const SCRIPT_ID = 'scriptId';
@@ -38,7 +37,7 @@ describe('MongoBulkDataMigration', () => {
       projection: {},
     };
   });
-  let loggerMock: LoggerInterface;
+  let loggerMock: jest.Mocked<LoggerInterface>;
 
   afterEach(async () => {
     await db.collection('testCollection').deleteMany({});
@@ -229,6 +228,57 @@ describe('MongoBulkDataMigration', () => {
         expect(returnValues.slice(2, 3)).toEqual([
           { $set: { returnPosition: 3 } },
         ]);
+      });
+    });
+
+    describe('Bulk splitting', () => {
+      const END_OF_BULK_LOG = 'Documents migration is successful';
+      let update: UpdateFilter<{ value: number }>;
+      beforeEach(async () => {
+        await collection.insertMany(
+          Array.from({ length: 100 }, (_, i) => ({ value: i + 1 })),
+        );
+        update = ({ value }) => ({
+          $set: { value: value * 2 },
+        });
+      });
+
+      it('should perform updates in batches', async () => {
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          options: {
+            maxBulkSize: 30,
+            maxConcurrentUpdateCalls: 1000,
+            rollbackable: false,
+          },
+          update,
+        });
+
+        await dataMigration.update();
+
+        const batchSizes = loggerMock.info.mock.calls
+          .filter(([_, msg]) => msg === END_OF_BULK_LOG)
+          .map(([{ nModified }]) => nModified);
+        expect(batchSizes).toEqual([30, 30, 30, 10]);
+      });
+
+      it('should perform updates in batches, event when not rollbackable', async () => {
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          options: {
+            maxBulkSize: 30,
+            maxConcurrentUpdateCalls: 1000,
+            rollbackable: true,
+          },
+          update,
+        });
+
+        await dataMigration.update();
+
+        const batchSizes = loggerMock.info.mock.calls
+          .filter(([_, msg]) => msg === END_OF_BULK_LOG)
+          .map(([{ nModified }]) => nModified);
+        expect(batchSizes).toEqual([30, 30, 30, 10]);
       });
     });
 
