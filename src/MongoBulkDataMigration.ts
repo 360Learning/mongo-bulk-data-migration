@@ -122,9 +122,8 @@ export default class MongoBulkDataMigration<TSchema extends Document>
     }
 
     await this.lowerValidationLevel('update');
-    const { cursor, totalEntries } = await this.getCursorAndCount(
-      migrationCollection,
-    );
+    const { cursor, totalEntries } =
+      await this.getCursorAndCount(migrationCollection);
     const formattedTotalEntries =
       totalEntries === NO_COUNT_AVAILABLE
         ? 'N/A (dontCount option ON)'
@@ -158,24 +157,22 @@ export default class MongoBulkDataMigration<TSchema extends Document>
       updatePromises.push(bulkUpdateWrappedPromise);
 
       document = (await cursor.next()) as WithId<TSchema> | null;
-      const totalIncludingPendingBulks =
-        bulkBackup.size +
-        updatePromiseLimiter.activeCount +
-        updatePromiseLimiter.pendingCount;
-      if (!document || totalIncludingPendingBulks >= this.options.maxBulkSize) {
+      if (!document || updatePromises.length >= this.options.maxBulkSize) {
         await Promise.all(updatePromises);
         const backupRes = (await bulkBackup.execute()).getResults();
         const updateRes = (
           await bulkMigration.execute(this.options.continueOnBulkWriteError)
         ).getResults();
 
-        const totalNewBackupDocs = backupRes.nUpserted + backupRes.nInserted;
-        const totalUpdatedDocument = updateRes.nModified + updateRes.nRemoved;
-        if (totalNewBackupDocs < totalUpdatedDocument) {
-          this.logger.warn(
-            { totalNewBackupDocs, totalUpdatedDocument },
-            "The number of backup documents should be equal to the total updated documents. Check your query is idempotent or ensure you don't use a same migration id for different migrations.",
-          );
+        if (this.options.rollbackable) {
+          const totalNewBackupDocs = backupRes.nUpserted + backupRes.nInserted;
+          const totalUpdatedDocument = updateRes.nModified + updateRes.nRemoved;
+          if (totalNewBackupDocs < totalUpdatedDocument) {
+            this.logger.warn(
+              { totalNewBackupDocs, totalUpdatedDocument },
+              "The number of backup documents should be equal to the total updated documents. Check your query is idempotent or ensure you don't use a same migration id for different migrations.",
+            );
+          }
         }
 
         await this.throttle();
