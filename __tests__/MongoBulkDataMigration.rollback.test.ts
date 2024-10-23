@@ -396,13 +396,13 @@ describe('MongoBulkDataMigration', () => {
       it('should restore nested array values', async () => {
         const document = {
           nested: {
-            array: ["a", "b"],
-          }
-        }
+            array: ['a', 'b'],
+          },
+        };
         await collection.insertMany([document]);
         const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
-          update: { $set: { "nested.array": ["c"] } },
+          update: { $set: { 'nested.array': ['c'] } },
         });
 
         await dataMigration.update();
