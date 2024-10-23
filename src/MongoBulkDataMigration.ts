@@ -122,8 +122,9 @@ export default class MongoBulkDataMigration<TSchema extends Document>
     }
 
     await this.lowerValidationLevel('update');
-    const { cursor, totalEntries } =
-      await this.getCursorAndCount(migrationCollection);
+    const { cursor, totalEntries } = await this.getCursorAndCount(
+      migrationCollection,
+    );
     const formattedTotalEntries =
       totalEntries === NO_COUNT_AVAILABLE
         ? 'N/A (dontCount option ON)'

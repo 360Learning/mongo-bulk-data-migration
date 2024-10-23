@@ -33,6 +33,17 @@ describe('computeRollbackQuery', () => {
           $set: { 'nested.key': 'value1' },
         });
       });
+
+      it('should set back the nested original array value', async () => {
+        const updateQuery = { $set: { 'nested.array': ['a', 'b'] } };
+        const backup = { nested: { array: ['a', 'b'] } };
+
+        const restoreQuery = computeRollbackQuery(updateQuery, backup);
+
+        expect(restoreQuery).toEqual({
+          $set: { 'nested.array': ['a', 'b'] },
+        });
+      });
     });
 
     describe('resulting from an $unset', () => {

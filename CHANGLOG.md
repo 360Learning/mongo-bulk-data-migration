@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.4 (2024-10-23)
+
+- Fix bug: rollback in nested properties didn't work for array values (`$set:{"a.b":[...]}`)
+
 ## 1.4.3 (2024-09-10)
 
 - Fix issues when the option `rollbackable` is `false`
