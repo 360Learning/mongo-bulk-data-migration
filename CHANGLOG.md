@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.5 (2024-10-28)
+
+- Patch 1.4.4 regression for auto rollback on nested properties
+
 ## 1.4.4 (2024-10-23)
 
 - Fix bug: rollback in nested properties didn't work for array values (`$set:{"a.b":[...]}`)
