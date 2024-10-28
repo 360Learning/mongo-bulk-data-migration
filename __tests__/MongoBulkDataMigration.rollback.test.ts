@@ -416,12 +416,10 @@ describe('MongoBulkDataMigration', () => {
         const document = {
           array: [
             {
-              nested: [
-                "nestedValue"
-              ]
-            }
-          ]
-        }
+              nested: ['nestedValue'],
+            },
+          ],
+        };
         await collection.insertMany([document]);
         const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
