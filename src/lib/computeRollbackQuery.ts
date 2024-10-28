@@ -51,9 +51,6 @@ function computeRollbackSet(
           }
           return rollbackSet;
         }
-
-        rollbackSet[nestedPathToArray] = value;
-        return rollbackSet;
       }
 
       rollbackSet[key] = value;

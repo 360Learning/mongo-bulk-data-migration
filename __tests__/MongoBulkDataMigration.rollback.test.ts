@@ -369,6 +369,63 @@ describe('MongoBulkDataMigration', () => {
       });
     });
 
+    describe('Number indexed objects support', () => {
+      it('should restore an object with numbers as keys', async () => {
+        const document = {
+          object: {
+            0: 'a',
+            1: 'b',
+          },
+        };
+        await collection.insertMany([document]);
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          update: {
+            $set: {
+              'object.1': 'new b',
+            },
+          },
+        });
+
+        await dataMigration.update();
+        await dataMigration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+        expect(restoredDocuments).toEqual([document]);
+      });
+
+      it('should restore an nested object with numbers as keys', async () => {
+        const document = {
+          object: {
+            0: 'a',
+            1: 'b',
+            2: {
+              nested: {
+                3: 'c',
+                4: ['d', 'e'],
+              },
+            },
+          },
+        };
+        await collection.insertMany([document]);
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          update: {
+            $set: {
+              'object.2.nested.3': 'new c',
+              'object.2.nested.4.1': 'new e',
+            },
+          },
+        });
+
+        await dataMigration.update();
+        await dataMigration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+        expect(restoredDocuments).toEqual([document]);
+      });
+    });
+
     describe('Nested keys support', () => {
       const sampleDocument = {
         rootKey: 1,
