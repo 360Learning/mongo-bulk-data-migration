@@ -24,6 +24,14 @@ function computeRollbackSet(
 
   return Object.entries(flattenBackupDocument).reduce(
     (rollbackSet, [key, value]) => {
+      const parentKeyToFullyRestore = setPropertiesDuringUpdate.find(
+        (userSet) => key.startsWith(`${userSet}.`),
+      );
+      if (parentKeyToFullyRestore && parentKeyToFullyRestore in backup) {
+        rollbackSet[parentKeyToFullyRestore] = backup[parentKeyToFullyRestore];
+        return rollbackSet;
+      }
+
       const indexMatch = /(.*)\.(\d+)$/.exec(key);
       if (indexMatch) {
         const [_str, nestedPathToArray, index] = indexMatch;
@@ -36,14 +44,6 @@ function computeRollbackSet(
         }
 
         rollbackSet[nestedPathToArray] = value;
-        return rollbackSet;
-      }
-
-      const parentKeyToFullyRestore = setPropertiesDuringUpdate.find(
-        (userSet) => key.startsWith(`${userSet}.`),
-      );
-      if (parentKeyToFullyRestore) {
-        rollbackSet[parentKeyToFullyRestore] = backup[parentKeyToFullyRestore];
         return rollbackSet;
       }
 
