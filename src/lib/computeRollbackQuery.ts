@@ -61,7 +61,9 @@ function computeRollbackUnset(
 ) {
   const keysToSet = Object.keys($set);
   const keysToUnset = setPropertiesDuringUpdate.filter(
-    (path) => !keysToSet.includes(path),
+    (path) =>
+      !keysToSet.includes(path) &&
+      !keysToSet.some((key) => path.startsWith(`${key}.`)),
   );
   const parentKeysToUnset = computeParentKeysToUnset(keysToUnset, backup);
   const nonConflictingKeysToUnset = filterConflictingKeys([

@@ -150,9 +150,7 @@ describe('computeRollbackQuery', () => {
       const restoreQuery = computeRollbackQuery(updateQuery, backup);
 
       expect(restoreQuery).toEqual({
-        // FIXME could be optimized here (by removing $set entirely)
         $set: { nested: {} },
-        $unset: { 'nested.new': 1 },
       });
     });
   });
