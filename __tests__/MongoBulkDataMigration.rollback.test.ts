@@ -412,6 +412,29 @@ describe('MongoBulkDataMigration', () => {
         expect(restoredDocuments).toEqual([document]);
       });
 
+      it('should restore an array element having objects', async () => {
+        const document = {
+          array: [
+            {
+              nested: [
+                "nestedValue"
+              ]
+            }
+          ]
+        }
+        await collection.insertMany([document]);
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          update: { $set: { array: [] } },
+        });
+
+        await dataMigration.update();
+        await dataMigration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+        expect(restoredDocuments).toEqual([document]);
+      });
+
       it('should not restore non-projected sibling values', async () => {
         const { insertedIds } = await collection.insertMany([sampleDocument]);
         const dataMigration = new MongoBulkDataMigration({
