@@ -450,6 +450,32 @@ describe('MongoBulkDataMigration', () => {
         expect(restoredDocuments).toEqual([document]);
       });
 
+      it('should restore specific nested array elements', async () => {
+        const document = {
+          array: [
+            null,
+            {
+              nestedArray: [null, 'b'],
+            },
+          ],
+        };
+        await collection.insertMany([document]);
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          update: {
+            $set: {
+              'array.1.nestedArray.1': 'new b',
+            },
+          },
+        });
+
+        await dataMigration.update();
+        await dataMigration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+        expect(restoredDocuments).toEqual([document]);
+      });
+
       it('should not restore non-projected sibling values', async () => {
         const { insertedIds } = await collection.insertMany([sampleDocument]);
         const dataMigration = new MongoBulkDataMigration({

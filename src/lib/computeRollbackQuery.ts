@@ -36,10 +36,19 @@ function computeRollbackSet(
       if (indexMatch) {
         const [_str, nestedPathToArray, index] = indexMatch;
         if (Array.isArray(_.get(backup, nestedPathToArray))) {
-          if (typeof rollbackSet[nestedPathToArray] === 'undefined') {
-            rollbackSet[nestedPathToArray] = [];
+          const containsDeeperSubKey = setPropertiesDuringUpdate.some(
+            (propertySet) =>
+              propertySet !== key &&
+              propertySet.match(new RegExp(`^${nestedPathToArray}\\.\\d+\\.`)),
+          );
+          if (!containsDeeperSubKey) {
+            if (typeof rollbackSet[nestedPathToArray] === 'undefined') {
+              rollbackSet[nestedPathToArray] = [];
+            }
+            rollbackSet[nestedPathToArray][Number(index)] = value;
+          } else {
+            rollbackSet[`${nestedPathToArray}.${index}`] = value;
           }
-          rollbackSet[nestedPathToArray][Number(index)] = value;
           return rollbackSet;
         }
 
