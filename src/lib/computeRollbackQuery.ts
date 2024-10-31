@@ -36,15 +36,21 @@ function computeRollbackSet(
       if (indexMatch) {
         const [_str, nestedPathToArray, index] = indexMatch;
         if (Array.isArray(_.get(backup, nestedPathToArray))) {
-          if (typeof rollbackSet[nestedPathToArray] === 'undefined') {
-            rollbackSet[nestedPathToArray] = [];
+          const containsDeeperSubKey = setPropertiesDuringUpdate.some(
+            (propertySet) =>
+              propertySet !== key &&
+              propertySet.match(new RegExp(`^${nestedPathToArray}\\.\\d+\\.`)),
+          );
+          if (!containsDeeperSubKey) {
+            if (typeof rollbackSet[nestedPathToArray] === 'undefined') {
+              rollbackSet[nestedPathToArray] = [];
+            }
+            rollbackSet[nestedPathToArray][Number(index)] = value;
+          } else {
+            rollbackSet[`${nestedPathToArray}.${index}`] = value;
           }
-          rollbackSet[nestedPathToArray][Number(index)] = value;
           return rollbackSet;
         }
-
-        rollbackSet[nestedPathToArray] = value;
-        return rollbackSet;
       }
 
       rollbackSet[key] = value;
@@ -61,7 +67,9 @@ function computeRollbackUnset(
 ) {
   const keysToSet = Object.keys($set);
   const keysToUnset = setPropertiesDuringUpdate.filter(
-    (path) => !keysToSet.includes(path),
+    (path) =>
+      !keysToSet.includes(path) &&
+      !keysToSet.some((key) => path.startsWith(`${key}.`)),
   );
   const parentKeysToUnset = computeParentKeysToUnset(keysToUnset, backup);
   const nonConflictingKeysToUnset = filterConflictingKeys([
