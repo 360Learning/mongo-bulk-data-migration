@@ -369,6 +369,41 @@ describe('MongoBulkDataMigration', () => {
       });
     });
 
+    describe('$unset support', () => {
+      it('should restore an object values', async () => {
+        const document = { key: 'value' };
+        await collection.insertMany([document]);
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          update: { $unset: { key: 1 } },
+          projection: { key: 1 },
+        });
+
+        await dataMigration.update();
+        await dataMigration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+        
+        expect(restoredDocuments).toEqual([document]);
+      });
+
+      it('should restore an object values even if key is not projected', async () => {
+        const document = { key: 'value' };
+        await collection.insertMany([document]);
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          update: { $unset: { key: 1 } },
+        });
+
+        await dataMigration.update();
+        await dataMigration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+        
+        expect(restoredDocuments).toEqual([document]);
+      });
+    });
+
     describe('Number indexed objects support', () => {
       it('should restore an object with numbers as keys', async () => {
         const document = {
