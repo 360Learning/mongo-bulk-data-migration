@@ -383,7 +383,7 @@ describe('MongoBulkDataMigration', () => {
         await dataMigration.rollback();
 
         const restoredDocuments = await collection.find().toArray();
-        
+
         expect(restoredDocuments).toEqual([document]);
       });
 
@@ -399,7 +399,56 @@ describe('MongoBulkDataMigration', () => {
         await dataMigration.rollback();
 
         const restoredDocuments = await collection.find().toArray();
-        
+
+        expect(restoredDocuments).toEqual([document]);
+      });
+
+      it('should restore a nested object value', async () => {
+        const document = { deep: { key: 'value' } };
+        await collection.insertMany([document]);
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          update: { $unset: { 'deep.key': 1 } },
+          projection: { deep: 1 },
+        });
+
+        await dataMigration.update();
+        await dataMigration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+
+        expect(restoredDocuments).toEqual([document]);
+      });
+
+      it('should restore a nested object value even if key is not projected', async () => {
+        const document = { deep: { key: 'value' } };
+        await collection.insertMany([document]);
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          update: { $unset: { 'deep.key': 1 } },
+        });
+
+        await dataMigration.update();
+        await dataMigration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+
+        expect(restoredDocuments).toEqual([document]);
+      });
+
+      it('should restore a nested object value in array', async () => {
+        const document = { deep: { key: { 0: 'value' } } };
+        await collection.insertMany([document]);
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          update: { $unset: { 'deep.key.0': 1 } },
+        });
+
+        await dataMigration.update();
+        await dataMigration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+
         expect(restoredDocuments).toEqual([document]);
       });
     });
