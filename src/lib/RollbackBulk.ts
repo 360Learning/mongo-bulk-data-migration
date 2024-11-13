@@ -14,9 +14,16 @@ export class RollbackBulk<
     return this;
   }
 
-  public addRollbackOperation(operation: any, objectId: ObjectId): this {
+  public addRollbackOperation(
+    operation: any,
+    objectId: ObjectId,
+    arrayFilters: Document[],
+  ): this {
     this.totalBulkOps++;
-    this.bulk.find({ _id: objectId }).update(operation);
+    this.bulk
+      .find({ _id: objectId })
+      .arrayFilters(arrayFilters)
+      .update(operation);
     return this;
   }
 

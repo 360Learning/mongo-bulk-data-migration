@@ -123,9 +123,8 @@ export default class MongoBulkDataMigration<TSchema extends Document>
     }
 
     await this.lowerValidationLevel('update');
-    const { cursor, totalEntries } = await this.getCursorAndCount(
-      migrationCollection,
-    );
+    const { cursor, totalEntries } =
+      await this.getCursorAndCount(migrationCollection);
     const formattedTotalEntries =
       totalEntries === NO_COUNT_AVAILABLE
         ? 'N/A (dontCount option ON)'
@@ -320,7 +319,12 @@ export default class MongoBulkDataMigration<TSchema extends Document>
       if (this.migrationInfos.update === DELETE_OPERATION) {
         bulkRollback.addRollbackFullDocumentOperation(rollbackDocument.backup);
       } else {
-        bulkRollback.addRollbackOperation(updateQuery, rollbackDocument._id);
+        const { arrayFilters, ...cleanedUpdateQuery } = updateQuery;
+        bulkRollback.addRollbackOperation(
+          cleanedUpdateQuery,
+          rollbackDocument._id,
+          arrayFilters ?? [],
+        );
       }
 
       rollbackDocument =
