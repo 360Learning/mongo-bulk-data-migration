@@ -943,6 +943,32 @@ describe('MongoBulkDataMigration', () => {
         const restoredDocuments = await collection.find().toArray();
         expect(restoredDocuments).toEqual(insertedDocuments);
       });
+
+      it('should rollback with a custom query', async () => {
+        const document = {
+          keys: [{ subKey1: 'match_me' }, { subKey1: 'do_not_match_me' }],
+        };
+        await collection.insertMany([document]);
+
+        const migration = new MongoBulkDataMigration<any>({
+          ...DM_DEFAULT_SETUP,
+          update: {
+            $set: {
+              'keys.$[element].new_key': '____MATCHED____',
+            },
+          },
+          rollback: (backup) => ({ $set: { keys: backup.keys } }),
+          options: {
+            arrayFilters: [{ 'element.subKey1': 'match_me' }],
+          },
+        });
+
+        await migration.update();
+        await migration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+        expect(restoredDocuments).toEqual([document]);
+      });
     });
   });
 });
