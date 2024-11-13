@@ -154,4 +154,23 @@ describe('computeRollbackQuery', () => {
       });
     });
   });
+
+  describe('[with arrayFilters] $unset after having $set', () => {
+    it('should $unset an added value and generate arrayFilters', async () => {
+      const updateQuery = {
+        $set: {
+          'keys.$[element].key': 'update_value',
+        },
+      };
+
+      const restoreQuery = computeRollbackQuery(updateQuery, {});
+
+      expect(restoreQuery).toEqual({
+        $unset: {
+          'keys.$[element].key': 1,
+        },
+        arrayFilters: [{ 'element.key': { $exists: true } }],
+      });
+    });
+  });
 });
