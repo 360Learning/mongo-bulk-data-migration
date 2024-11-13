@@ -19,19 +19,24 @@ export class MigrationBulk<
   public addUpdateOrRemoveOperation(
     updateQuery: UpdateFilter<TSchema> | typeof DELETE_OPERATION,
     objectId: ObjectId,
+    arrayFilters: Document[],
   ): this {
     if (updateQuery === DELETE_OPERATION) {
       return this.addRemoveOperation(objectId);
     }
-    return this.addUpdateOperation(updateQuery, objectId);
+    return this.addUpdateOperation(updateQuery, objectId, arrayFilters);
   }
 
   public addUpdateOperation(
     updateQuery: UpdateFilter<TSchema>,
     objectId: ObjectId,
+    arrayFilters: Document[],
   ): this {
     this.totalBulkOps++;
-    this.bulk.find({ _id: objectId }).update(updateQuery);
+    this.bulk
+      .find({ _id: objectId })
+      .arrayFilters(arrayFilters)
+      .update(updateQuery);
     return this;
   }
 

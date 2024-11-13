@@ -47,6 +47,7 @@ export default class MongoBulkDataMigration<TSchema extends Document>
   implements RollbackableUpdate
 {
   private readonly options: DataMigrationOptions<TSchema> = {
+    arrayFilters: [],
     bypassRollbackValidation: false,
     bypassUpdateValidation: false,
     continueOnBulkWriteError: false,
@@ -256,6 +257,7 @@ export default class MongoBulkDataMigration<TSchema extends Document>
       bulkMigration.addUpdateOrRemoveOperation(
         updateQuery,
         document._id as ObjectId,
+        this.options.arrayFilters,
       );
     };
   }

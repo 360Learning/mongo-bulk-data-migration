@@ -464,6 +464,73 @@ describe('MongoBulkDataMigration', () => {
     });
   });
 
+  describe('arrayFilters support', () => {
+    it('performs the migration on nested object in arrays', async () => {
+      const matchDocument = {
+        keys: [
+          {
+            subKey1: 'match_me',
+            subKey2: [{ elt1: 90 }, { elt1: 95 }], // <100 no match
+          },
+          {
+            subKey1: 'match_me',
+            subKey2: [
+              { elt1: 90 },
+              { elt1: 130 }, // <--- Only this element is matches (>=100)
+            ],
+          },
+        ],
+      };
+      const fullyUnmatchedDocument = {
+        keys: [
+          {
+            subKey1: 'match_me',
+            subKey2: [{ elt1: 90 }, { elt1: 95 }], // <100 no match
+          },
+          {
+            subKey1: 'DO_NOT_match',
+            subKey2: [{ elt1: 104 }, { elt1: 106 }],
+          },
+        ],
+      };
+      await collection.insertMany([matchDocument, fullyUnmatchedDocument]);
+
+      const migration = new MongoBulkDataMigration<any>({
+        ...DM_DEFAULT_SETUP,
+        update: {
+          $set: {
+            'keys.$[element].subKey2.$[element2].elt2': '____MATCHED____',
+          },
+        },
+        options: {
+          arrayFilters: [
+            { 'element.subKey1': 'match_me' },
+            { 'element2.elt1': { $gte: 100 } },
+          ],
+        },
+      });
+
+      await migration.update();
+
+      const documents = await collection.find().toArray();
+      expect(documents.map((doc) => _.omit(doc, '_id'))).toEqual([
+        {
+          keys: [
+            {
+              subKey1: 'match_me',
+              subKey2: [{ elt1: 90 }, { elt1: 95 }],
+            },
+            {
+              subKey1: 'match_me',
+              subKey2: [{ elt1: 90 }, { elt1: 130, elt2: '____MATCHED____' }],
+            },
+          ],
+        },
+        _.omit(fullyUnmatchedDocument, '_id'),
+      ]);
+    });
+  });
+
   describe('#delete', () => {
     it('should perform the delete operation', async () => {
       await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
