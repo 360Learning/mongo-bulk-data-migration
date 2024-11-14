@@ -43,9 +43,9 @@ function _computeArrayFilterAndUnsetWithPositionals(
   const arrayFilters: Document[] = [];
   const update = Object.keys(flattenDocument(updateQuery.$set ?? {}));
   update
-    .filter((path) => !filteredObject.includes(path))
     .filter(
       (path) =>
+        !filteredObject.includes(path) &&
         !arrayFiltersUtils.hasPathMatchingPositionalOperators(
           path,
           filteredObject,
