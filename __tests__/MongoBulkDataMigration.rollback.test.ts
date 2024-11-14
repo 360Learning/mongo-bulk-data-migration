@@ -863,7 +863,38 @@ describe('MongoBulkDataMigration', () => {
     });
 
     describe('arrayFilters support', () => {
-      it('should rollback automatically change on nested keys', async () => {
+      it('should $set back initial value', async () => {
+        const matchDocument = {
+          keys: [
+            {
+              subKey: 'match_me',
+              value: 'I am already set',
+            },
+          ],
+        };
+        await collection.insertMany([matchDocument]);
+        await collection.find().toArray();
+
+        const migration = new MongoBulkDataMigration<any>({
+          ...DM_DEFAULT_SETUP,
+          update: {
+            $set: {
+              'keys.$[element].value': '____MATCHED____',
+            },
+          },
+          options: {
+            arrayFilters: [{ 'element.subKey': 'match_me' }],
+          },
+        });
+
+        await migration.update();
+        await migration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+        expect(restoredDocuments).toEqual([matchDocument]);
+      });
+
+      it('should $unset newly added values', async () => {
         const matchDocument = {
           keys: [
             {
@@ -907,7 +938,7 @@ describe('MongoBulkDataMigration', () => {
               { 'element.subKey1': 'match_me' },
               { 'element2.elt1': { $gte: 100 } },
             ],
-            projectionBackupFilter: [],
+            projectionBackupFilter: [], // TODO make this unnecessary https://github.com/360Learning/mongo-bulk-data-migration/issues/24
           },
         });
 
@@ -918,7 +949,7 @@ describe('MongoBulkDataMigration', () => {
         expect(restoredDocuments).toEqual(insertedDocuments);
       });
 
-      it('should rollback with a custom query', async () => {
+      it('should rollback with a custom rollback query', async () => {
         const document = {
           keys: [{ subKey1: 'match_me' }, { subKey1: 'do_not_match_me' }],
         };
