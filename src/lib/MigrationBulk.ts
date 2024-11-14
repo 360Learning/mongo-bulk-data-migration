@@ -33,10 +33,16 @@ export class MigrationBulk<
     arrayFilters: Document[],
   ): this {
     this.totalBulkOps++;
-    this.bulk
-      .find({ _id: objectId })
-      .arrayFilters(arrayFilters)
-      .update(updateQuery);
+
+    if (arrayFilters.length === 0) {
+      this.bulk.find({ _id: objectId }).update(updateQuery);
+    } else {
+      this.bulk
+        .find({ _id: objectId })
+        .arrayFilters(arrayFilters)
+        .update(updateQuery);
+    }
+
     return this;
   }
 
