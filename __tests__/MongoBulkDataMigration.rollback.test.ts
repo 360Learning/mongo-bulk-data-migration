@@ -160,14 +160,12 @@ describe('MongoBulkDataMigration', () => {
     });
 
     it('should restore a property removed during migration', async () => {
-      const insertResult = await collection.insertMany([
+      await collection.insertMany([
         { other: 1, key: 1 },
         { other: 1, key: 2 },
         { other: 1, key: 3 },
       ]);
-      const insertedDocuments = await collection
-        .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-        .toArray();
+      const insertedDocuments = await collection.find().toArray();
       const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         update: { $unset: { key: 1 } },
@@ -198,16 +196,14 @@ describe('MongoBulkDataMigration', () => {
     });
 
     it('should restore to the original deep structure', async () => {
-      const insertResult = await collection.insertMany([
+      await collection.insertMany([
         {
           a: {
             b: 'value',
           },
         },
       ]);
-      const insertedDocuments = await collection
-        .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-        .toArray();
+      const insertedDocuments = await collection.find().toArray();
       const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         update: (doc: any) => ({ $set: { a: doc.a.b } }),
@@ -221,14 +217,8 @@ describe('MongoBulkDataMigration', () => {
     });
 
     it('should restore removed documents', async () => {
-      const insertResult = await collection.insertMany([
-        { key: 1 },
-        { key: 2 },
-        { key: 3 },
-      ]);
-      const insertedDocuments = await collection
-        .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-        .toArray();
+      await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
+      const insertedDocuments = await collection.find().toArray();
       const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         query: { key: 2 },
@@ -257,13 +247,8 @@ describe('MongoBulkDataMigration', () => {
     });
 
     it('should remove properties added during migration', async () => {
-      const insertResult = await collection.insertMany([
-        { other: 1 },
-        { other: 1 },
-      ]);
-      const insertedDocuments = await collection
-        .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-        .toArray();
+      await collection.insertMany([{ other: 1 }, { other: 1 }]);
+      const insertedDocuments = await collection.find().toArray();
       const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         update: { $set: { key: 2 } },
@@ -692,14 +677,12 @@ describe('MongoBulkDataMigration', () => {
 
     describe('Aggregate support', () => {
       it('should perform rollback for an aggregate pipeline', async () => {
-        const insertResult = await collection.insertMany([
+        await collection.insertMany([
           { key: 1, letThis: true },
           { key: 1 },
           { key: 5 },
         ]);
-        const insertedDocuments = await collection
-          .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-          .toArray();
+        const insertedDocuments = await collection.find().toArray();
         const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           query: [
@@ -816,14 +799,12 @@ describe('MongoBulkDataMigration', () => {
 
     describe('With rollback function', () => {
       it('should apply a specific rollback operation and unset an added value', async () => {
-        const insertResult = await collection.insertMany([
+        await collection.insertMany([
           { other: 1, key: 1 },
           { other: 1, key: 2 },
           { other: 1, key: 3 },
         ]);
-        const insertedDocuments = await collection
-          .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-          .toArray();
+        const insertedDocuments = await collection.find().toArray();
         const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           options: { bypassRollbackValidation: true },
@@ -839,13 +820,11 @@ describe('MongoBulkDataMigration', () => {
       });
 
       it('should call the rollback function with the backup document', async () => {
-        const insertResult = await collection.insertMany([
+        await collection.insertMany([
           { value: 1, double: 2 },
           { value: 1, double: 2 },
         ]);
-        const insertedDocuments = await collection
-          .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-          .toArray();
+        const insertedDocuments = await collection.find().toArray();
         const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           rollback: (doc: any) => ({ $set: { double: doc.value * 2 } }),
@@ -880,6 +859,120 @@ describe('MongoBulkDataMigration', () => {
           { key: 2, value: 10 },
           { key: 2, value: 10 },
         ]);
+      });
+    });
+
+    describe('arrayFilters support', () => {
+      it('should $set back initial value', async () => {
+        const matchDocument = {
+          keys: [
+            {
+              subKey: 'match_me',
+              value: 'I am already set',
+            },
+          ],
+        };
+        await collection.insertMany([matchDocument]);
+        await collection.find().toArray();
+
+        const migration = new MongoBulkDataMigration<any>({
+          ...DM_DEFAULT_SETUP,
+          update: {
+            $set: {
+              'keys.$[element].value': '____MATCHED____',
+            },
+          },
+          options: {
+            arrayFilters: [{ 'element.subKey': 'match_me' }],
+          },
+        });
+
+        await migration.update();
+        await migration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+        expect(restoredDocuments).toEqual([matchDocument]);
+      });
+
+      it('should $unset newly added values', async () => {
+        const matchDocument = {
+          keys: [
+            {
+              subKey1: 'match_me',
+              subKey2: [{ elt1: 90 }, { elt1: 95 }], // <100 no match
+            },
+            {
+              subKey1: 'match_me',
+              subKey2: [
+                { elt1: 90 },
+                // Only this element has a match
+                { elt1: 130 },
+              ],
+            },
+          ],
+        };
+        const fullyUnmatchedDocument = {
+          keys: [
+            {
+              subKey1: 'match_me',
+              subKey2: [{ elt1: 90 }, { elt1: 95 }], // <100 no match
+            },
+            {
+              subKey1: 'DO_NOT_match',
+              subKey2: [{ elt1: 104 }, { elt1: 106 }],
+            },
+          ],
+        };
+        await collection.insertMany([matchDocument, fullyUnmatchedDocument]);
+        const insertedDocuments = await collection.find().toArray();
+
+        const migration = new MongoBulkDataMigration<any>({
+          ...DM_DEFAULT_SETUP,
+          update: {
+            $set: {
+              'keys.$[element].subKey2.$[element2].elt2': '____MATCHED____',
+            },
+          },
+          options: {
+            arrayFilters: [
+              { 'element.subKey1': 'match_me' },
+              { 'element2.elt1': { $gte: 100 } },
+            ],
+            projectionBackupFilter: [], // TODO make this unnecessary https://github.com/360Learning/mongo-bulk-data-migration/issues/24
+          },
+        });
+
+        await migration.update();
+        await migration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+        expect(restoredDocuments).toEqual(insertedDocuments);
+      });
+
+      it('should rollback with a custom rollback query', async () => {
+        const document = {
+          keys: [{ subKey1: 'match_me' }, { subKey1: 'do_not_match_me' }],
+        };
+        await collection.insertMany([document]);
+
+        const migration = new MongoBulkDataMigration<any>({
+          ...DM_DEFAULT_SETUP,
+          update: {
+            $set: {
+              'keys.$[element].new_key': '____MATCHED____',
+            },
+          },
+          rollback: (backup) => ({ $set: { keys: backup.keys } }),
+          options: {
+            arrayFilters: [{ 'element.subKey1': 'match_me' }],
+          },
+        });
+
+        await migration.update();
+        await migration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+        expect(restoredDocuments).toEqual([document]);
       });
     });
   });

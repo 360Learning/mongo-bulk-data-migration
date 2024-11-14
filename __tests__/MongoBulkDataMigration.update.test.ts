@@ -66,14 +66,12 @@ describe('MongoBulkDataMigration', () => {
     });
 
     it('should perform the migration successfully without changing other properties', async () => {
-      const insertResult = await collection.insertMany([
+      await collection.insertMany([
         { key: 1, other: 1 },
         { key: 2, other: 1 },
         { key: 3, other: 1 },
       ]);
-      const insertedDocuments = await collection
-        .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-        .toArray();
+      const insertedDocuments = await collection.find().toArray();
       const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         update: () => ({ $set: { key: 2 } }),
@@ -93,14 +91,8 @@ describe('MongoBulkDataMigration', () => {
     });
 
     it('should allow to continue a not ended migration', async () => {
-      const insertResult = await collection.insertMany([
-        { key: 1 },
-        { key: 2 },
-        { key: 3 },
-      ]);
-      const insertedDocuments = await collection
-        .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-        .toArray();
+      await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
+      const insertedDocuments = await collection.find().toArray();
       let updateStubRunCount = 0;
       const udpateStub = jest.fn().mockImplementation(() => {
         updateStubRunCount++;
@@ -461,6 +453,73 @@ describe('MongoBulkDataMigration', () => {
         expect(rollbackCollectionSize).toEqual(0);
         expect(loggerMock.warn).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('arrayFilters support', () => {
+    it('performs the migration on nested object in arrays', async () => {
+      const matchDocument = {
+        keys: [
+          {
+            subKey1: 'match_me',
+            subKey2: [{ elt1: 90 }, { elt1: 95 }], // <100 no match
+          },
+          {
+            subKey1: 'match_me',
+            subKey2: [
+              { elt1: 90 },
+              { elt1: 130 }, // <--- Only this element matches (>=100)
+            ],
+          },
+        ],
+      };
+      const fullyUnmatchedDocument = {
+        keys: [
+          {
+            subKey1: 'match_me',
+            subKey2: [{ elt1: 90 }, { elt1: 95 }], // <100 no match
+          },
+          {
+            subKey1: 'DO_NOT_match',
+            subKey2: [{ elt1: 104 }, { elt1: 106 }],
+          },
+        ],
+      };
+      await collection.insertMany([matchDocument, fullyUnmatchedDocument]);
+
+      const migration = new MongoBulkDataMigration<any>({
+        ...DM_DEFAULT_SETUP,
+        update: {
+          $set: {
+            'keys.$[element].subKey2.$[element2].elt2': '____MATCHED____',
+          },
+        },
+        options: {
+          arrayFilters: [
+            { 'element.subKey1': 'match_me' },
+            { 'element2.elt1': { $gte: 100 } },
+          ],
+        },
+      });
+
+      await migration.update();
+
+      const documents = await collection.find().toArray();
+      expect(documents.map((doc) => _.omit(doc, '_id'))).toEqual([
+        {
+          keys: [
+            {
+              subKey1: 'match_me',
+              subKey2: [{ elt1: 90 }, { elt1: 95 }],
+            },
+            {
+              subKey1: 'match_me',
+              subKey2: [{ elt1: 90 }, { elt1: 130, elt2: '____MATCHED____' }],
+            },
+          ],
+        },
+        _.omit(fullyUnmatchedDocument, '_id'),
+      ]);
     });
   });
 

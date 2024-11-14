@@ -2,6 +2,7 @@
 
 ## 1.5.0-rc1 (2024-xx-yy)
 
+- Support for `arrayFilters`
 - Improve automatic rollback for nested paths - Thanks [@hugop95](https://github.com/hugop95) https://github.com/360Learning/mongo-bulk-data-migration/pull/19
 - Upgrade dev packages
 

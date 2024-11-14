@@ -10,6 +10,8 @@ import type { DELETE_OPERATION } from './lib/MigrationBulk';
 import { DELETE_COLLECTION } from './MongoBulkDataMigration';
 
 export type DataMigrationOptions<TSchema> = {
+  /** Array filters to use in case of a migration on nested object in arrays */
+  arrayFilters: Document[];
   /** Disable document validation temporarily on the rollback process */
   bypassRollbackValidation: boolean;
   /** Disable document validation temporarily on the update process */
@@ -40,6 +42,7 @@ export type RollbackDocument = {
 export type RollBackUpdateObject = {
   $set?: any;
   $unset?: any;
+  arrayFilters?: Document[];
 };
 
 export type MongoPipeline = object[];

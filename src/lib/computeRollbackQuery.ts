@@ -1,5 +1,7 @@
 import _ from 'lodash';
 import { flattenDocument } from '../tools/flattenDocument';
+import * as arrayFiltersUtils from '../tools/arrayFilters';
+import type { Document } from 'mongodb';
 
 /**
  * @param updateQuery Mongo update query executed at migration
@@ -8,11 +10,59 @@ import { flattenDocument } from '../tools/flattenDocument';
 export function computeRollbackQuery(updateQuery: any, backup: any) {
   const setPropertiesDuringUpdate = Object.keys(updateQuery.$set || {});
   const $set = computeRollbackSet(setPropertiesDuringUpdate, backup);
-  const $unset = computeRollbackUnset(setPropertiesDuringUpdate, backup, $set);
+  const $unsetWithoutPositionals = computeRollbackUnset(
+    setPropertiesDuringUpdate,
+    backup,
+    $set,
+  );
+
+  const { arrayFilters, unsetAdditionalPositional } =
+    _computeArrayFilterAndUnsetWithPositionals(updateQuery, backup);
+  const $unset = {
+    ...$unsetWithoutPositionals,
+    ...unsetAdditionalPositional,
+  };
 
   return {
     ...(!_.isEmpty($set) ? { $set } : {}),
     ...(!_.isEmpty($unset) ? { $unset } : {}),
+    ...(!_.isEmpty(arrayFilters) ? { arrayFilters } : {}),
+  };
+}
+
+/**
+ * If path contains a "positional argument", we'll have to add the correct
+ * arrayFilters options for the $unset operation to work correctly
+ */
+function _computeArrayFilterAndUnsetWithPositionals(
+  updateQuery: any,
+  backup: any,
+): { arrayFilters: Document[]; unsetAdditionalPositional: any } {
+  const unsetAdditionalPositional = {};
+  const filteredObject = Object.keys(flattenDocument(backup));
+  const arrayFilters: Document[] = [];
+  const update = Object.keys(flattenDocument(updateQuery.$set ?? {}));
+  update
+    .filter(
+      (path) =>
+        !filteredObject.includes(path) &&
+        !arrayFiltersUtils.hasPathMatchingPositionalOperators(
+          path,
+          filteredObject,
+        ),
+    )
+    .forEach((path) => {
+      if (arrayFiltersUtils.isArrayFilterPath(path)) {
+        unsetAdditionalPositional[path] = 1;
+        arrayFilters.push(
+          ...arrayFiltersUtils.buildArrayFiltersOptionToUnset(path),
+        );
+      }
+    });
+
+  return {
+    arrayFilters,
+    unsetAdditionalPositional,
   };
 }
 
@@ -69,6 +119,7 @@ function computeRollbackUnset(
   const keysToUnset = setPropertiesDuringUpdate.filter(
     (path) =>
       !keysToSet.includes(path) &&
+      !arrayFiltersUtils.isArrayFilterPath(path) &&
       !keysToSet.some((key) => path.startsWith(`${key}.`)),
   );
   const parentKeysToUnset = computeParentKeysToUnset(keysToUnset, backup);
