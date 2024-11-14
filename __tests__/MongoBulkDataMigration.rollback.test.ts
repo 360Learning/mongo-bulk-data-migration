@@ -160,14 +160,12 @@ describe('MongoBulkDataMigration', () => {
     });
 
     it('should restore a property removed during migration', async () => {
-      const insertResult = await collection.insertMany([
+      await collection.insertMany([
         { other: 1, key: 1 },
         { other: 1, key: 2 },
         { other: 1, key: 3 },
       ]);
-      const insertedDocuments = await collection
-        .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-        .toArray();
+      const insertedDocuments = await collection.find().toArray();
       const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         update: { $unset: { key: 1 } },
@@ -198,16 +196,14 @@ describe('MongoBulkDataMigration', () => {
     });
 
     it('should restore to the original deep structure', async () => {
-      const insertResult = await collection.insertMany([
+      await collection.insertMany([
         {
           a: {
             b: 'value',
           },
         },
       ]);
-      const insertedDocuments = await collection
-        .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-        .toArray();
+      const insertedDocuments = await collection.find().toArray();
       const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         update: (doc: any) => ({ $set: { a: doc.a.b } }),
@@ -221,14 +217,8 @@ describe('MongoBulkDataMigration', () => {
     });
 
     it('should restore removed documents', async () => {
-      const insertResult = await collection.insertMany([
-        { key: 1 },
-        { key: 2 },
-        { key: 3 },
-      ]);
-      const insertedDocuments = await collection
-        .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-        .toArray();
+      await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
+      const insertedDocuments = await collection.find().toArray();
       const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         query: { key: 2 },
@@ -257,13 +247,8 @@ describe('MongoBulkDataMigration', () => {
     });
 
     it('should remove properties added during migration', async () => {
-      const insertResult = await collection.insertMany([
-        { other: 1 },
-        { other: 1 },
-      ]);
-      const insertedDocuments = await collection
-        .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-        .toArray();
+      await collection.insertMany([{ other: 1 }, { other: 1 }]);
+      const insertedDocuments = await collection.find().toArray();
       const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         update: { $set: { key: 2 } },
@@ -692,14 +677,12 @@ describe('MongoBulkDataMigration', () => {
 
     describe('Aggregate support', () => {
       it('should perform rollback for an aggregate pipeline', async () => {
-        const insertResult = await collection.insertMany([
+        await collection.insertMany([
           { key: 1, letThis: true },
           { key: 1 },
           { key: 5 },
         ]);
-        const insertedDocuments = await collection
-          .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-          .toArray();
+        const insertedDocuments = await collection.find().toArray();
         const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           query: [
@@ -816,14 +799,12 @@ describe('MongoBulkDataMigration', () => {
 
     describe('With rollback function', () => {
       it('should apply a specific rollback operation and unset an added value', async () => {
-        const insertResult = await collection.insertMany([
+        await collection.insertMany([
           { other: 1, key: 1 },
           { other: 1, key: 2 },
           { other: 1, key: 3 },
         ]);
-        const insertedDocuments = await collection
-          .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-          .toArray();
+        const insertedDocuments = await collection.find().toArray();
         const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           options: { bypassRollbackValidation: true },
@@ -839,13 +820,11 @@ describe('MongoBulkDataMigration', () => {
       });
 
       it('should call the rollback function with the backup document', async () => {
-        const insertResult = await collection.insertMany([
+        await collection.insertMany([
           { value: 1, double: 2 },
           { value: 1, double: 2 },
         ]);
-        const insertedDocuments = await collection
-          .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-          .toArray();
+        const insertedDocuments = await collection.find().toArray();
         const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           rollback: (doc: any) => ({ $set: { double: doc.value * 2 } }),
@@ -913,13 +892,8 @@ describe('MongoBulkDataMigration', () => {
             },
           ],
         };
-        const insertResult = await collection.insertMany([
-          matchDocument,
-          fullyUnmatchedDocument,
-        ]);
-        const insertedDocuments = await collection
-          .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-          .toArray();
+        await collection.insertMany([matchDocument, fullyUnmatchedDocument]);
+        const insertedDocuments = await collection.find().toArray();
 
         const migration = new MongoBulkDataMigration<any>({
           ...DM_DEFAULT_SETUP,

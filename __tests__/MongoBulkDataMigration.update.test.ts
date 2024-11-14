@@ -66,14 +66,12 @@ describe('MongoBulkDataMigration', () => {
     });
 
     it('should perform the migration successfully without changing other properties', async () => {
-      const insertResult = await collection.insertMany([
+      await collection.insertMany([
         { key: 1, other: 1 },
         { key: 2, other: 1 },
         { key: 3, other: 1 },
       ]);
-      const insertedDocuments = await collection
-        .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-        .toArray();
+      const insertedDocuments = await collection.find().toArray();
       const dataMigration = new MongoBulkDataMigration({
         ...DM_DEFAULT_SETUP,
         update: () => ({ $set: { key: 2 } }),
@@ -93,14 +91,8 @@ describe('MongoBulkDataMigration', () => {
     });
 
     it('should allow to continue a not ended migration', async () => {
-      const insertResult = await collection.insertMany([
-        { key: 1 },
-        { key: 2 },
-        { key: 3 },
-      ]);
-      const insertedDocuments = await collection
-        .find({ _id: { $in: Object.values(insertResult.insertedIds) } })
-        .toArray();
+      await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
+      const insertedDocuments = await collection.find().toArray();
       let updateStubRunCount = 0;
       const udpateStub = jest.fn().mockImplementation(() => {
         updateStubRunCount++;
@@ -476,7 +468,7 @@ describe('MongoBulkDataMigration', () => {
             subKey1: 'match_me',
             subKey2: [
               { elt1: 90 },
-              { elt1: 130 }, // <--- Only this element is matches (>=100)
+              { elt1: 130 }, // <--- Only this element matches (>=100)
             ],
           },
         ],
