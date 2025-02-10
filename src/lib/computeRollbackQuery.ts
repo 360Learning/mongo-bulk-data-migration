@@ -8,8 +8,9 @@ import type { Document } from 'mongodb';
  * @param backup Document backed up before the migration
  */
 export function computeRollbackQuery(updateQuery: any, backup: any) {
+  const unsetPropertiesDuringUpdate = Object.keys(updateQuery.$unset || {});
   const setPropertiesDuringUpdate = Object.keys(updateQuery.$set || {});
-  const $set = computeRollbackSet(setPropertiesDuringUpdate, backup);
+  const $set = computeRollbackSet(setPropertiesDuringUpdate, unsetPropertiesDuringUpdate, backup);
   const $unsetWithoutPositionals = computeRollbackUnset(
     setPropertiesDuringUpdate,
     backup,
@@ -68,14 +69,18 @@ function _computeArrayFilterAndUnsetWithPositionals(
 
 function computeRollbackSet(
   setPropertiesDuringUpdate: string[],
+  unsetPropertiesDuringUpdate: string[],
   backup: any,
 ): any {
   const flattenBackupDocument = flattenDocument(backup);
 
   return Object.entries(flattenBackupDocument).reduce(
     (rollbackSet, [key, value]) => {
-      const parentKeyToFullyRestore = setPropertiesDuringUpdate.find(
-        (userSet) => key.startsWith(`${userSet}.`),
+      const parentKeyToFullyRestore = [
+        ...setPropertiesDuringUpdate,
+        ...unsetPropertiesDuringUpdate
+      ].find(
+        (setOrUnsetKey) => key.startsWith(`${setOrUnsetKey}.`),
       );
       if (parentKeyToFullyRestore && parentKeyToFullyRestore in backup) {
         rollbackSet[parentKeyToFullyRestore] = backup[parentKeyToFullyRestore];

@@ -388,6 +388,26 @@ describe('MongoBulkDataMigration', () => {
         expect(restoredDocuments).toEqual([document]);
       });
 
+      it('should restore an array element having objects', async () => {
+        const document = { array: [ { nested: ['nestedValue'] } ] };
+        await collection.insertMany([document]);
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          update: { $unset: { array: 1 } }
+        });
+
+        await dataMigration.update();
+        const updateResults = await dataMigration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+        expect(updateResults).toEqual({
+          ...INITIAL_BULK_INFOS,
+          nMatched: 1,
+          nModified: 1,
+        });
+        expect(restoredDocuments).toEqual([document]);
+      })
+
       it('should restore a nested object value', async () => {
         const document = { deep: { key: 'value' } };
         await collection.insertMany([document]);
