@@ -185,8 +185,8 @@ describe('MongoBulkDataMigration', () => {
         projection: { keys: 1 },
         update: { $unset: { keys: 1 } },
       });
-      await dataMigration.update();
 
+      await dataMigration.update();
       await dataMigration.rollback();
 
       const restoredDocuments = await collection.find().toArray();
@@ -368,7 +368,6 @@ describe('MongoBulkDataMigration', () => {
         await dataMigration.rollback();
 
         const restoredDocuments = await collection.find().toArray();
-
         expect(restoredDocuments).toEqual([document]);
       });
 
@@ -384,7 +383,6 @@ describe('MongoBulkDataMigration', () => {
         await dataMigration.rollback();
 
         const restoredDocuments = await collection.find().toArray();
-
         expect(restoredDocuments).toEqual([document]);
       });
 
@@ -421,7 +419,6 @@ describe('MongoBulkDataMigration', () => {
         await dataMigration.rollback();
 
         const restoredDocuments = await collection.find().toArray();
-
         expect(restoredDocuments).toEqual([document]);
       });
 
@@ -437,7 +434,6 @@ describe('MongoBulkDataMigration', () => {
         await dataMigration.rollback();
 
         const restoredDocuments = await collection.find().toArray();
-
         expect(restoredDocuments).toEqual([document]);
       });
 
@@ -453,7 +449,6 @@ describe('MongoBulkDataMigration', () => {
         await dataMigration.rollback();
 
         const restoredDocuments = await collection.find().toArray();
-
         expect(restoredDocuments).toEqual([document]);
       });
     });
@@ -806,8 +801,8 @@ describe('MongoBulkDataMigration', () => {
           options: { bypassRollbackValidation: true },
           update: updateQuery,
         });
-        await dataMigration.update();
 
+        await dataMigration.update();
         await dataMigration.rollback();
 
         const restoredDoc = await db
@@ -894,7 +889,6 @@ describe('MongoBulkDataMigration', () => {
         };
         await collection.insertMany([matchDocument]);
         await collection.find().toArray();
-
         const migration = new MongoBulkDataMigration<any>({
           ...DM_DEFAULT_SETUP,
           update: {
@@ -945,7 +939,6 @@ describe('MongoBulkDataMigration', () => {
         };
         await collection.insertMany([matchDocument, fullyUnmatchedDocument]);
         const insertedDocuments = await collection.find().toArray();
-
         const migration = new MongoBulkDataMigration<any>({
           ...DM_DEFAULT_SETUP,
           update: {
@@ -974,7 +967,6 @@ describe('MongoBulkDataMigration', () => {
           keys: [{ subKey1: 'match_me' }, { subKey1: 'do_not_match_me' }],
         };
         await collection.insertMany([document]);
-
         const migration = new MongoBulkDataMigration<any>({
           ...DM_DEFAULT_SETUP,
           update: {
