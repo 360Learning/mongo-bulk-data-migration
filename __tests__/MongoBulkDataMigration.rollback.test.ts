@@ -441,7 +441,7 @@ describe('MongoBulkDataMigration', () => {
         expect(restoredDocuments).toEqual([document]);
       });
 
-      it('should restore a nested object value in array', async () => {
+      it('should restore a nested value in a number-indexed object', async () => {
         const document = { deep: { key: { 0: 'value' } } };
         await collection.insertMany([document]);
         const dataMigration = new MongoBulkDataMigration({
