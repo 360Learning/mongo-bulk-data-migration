@@ -185,8 +185,8 @@ describe('MongoBulkDataMigration', () => {
         projection: { keys: 1 },
         update: { $unset: { keys: 1 } },
       });
-      await dataMigration.update();
 
+      await dataMigration.update();
       await dataMigration.rollback();
 
       const restoredDocuments = await collection.find().toArray();
@@ -368,7 +368,6 @@ describe('MongoBulkDataMigration', () => {
         await dataMigration.rollback();
 
         const restoredDocuments = await collection.find().toArray();
-
         expect(restoredDocuments).toEqual([document]);
       });
 
@@ -384,9 +383,28 @@ describe('MongoBulkDataMigration', () => {
         await dataMigration.rollback();
 
         const restoredDocuments = await collection.find().toArray();
-
         expect(restoredDocuments).toEqual([document]);
       });
+
+      it('should restore an array element having objects', async () => {
+        const document = { array: [ { nested: ['nestedValue'] } ] };
+        await collection.insertMany([document]);
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          update: { $unset: { array: 1 } }
+        });
+
+        await dataMigration.update();
+        const updateResults = await dataMigration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+        expect(updateResults).toEqual({
+          ...INITIAL_BULK_INFOS,
+          nMatched: 1,
+          nModified: 1,
+        });
+        expect(restoredDocuments).toEqual([document]);
+      })
 
       it('should restore a nested object value', async () => {
         const document = { deep: { key: 'value' } };
@@ -401,7 +419,6 @@ describe('MongoBulkDataMigration', () => {
         await dataMigration.rollback();
 
         const restoredDocuments = await collection.find().toArray();
-
         expect(restoredDocuments).toEqual([document]);
       });
 
@@ -417,11 +434,10 @@ describe('MongoBulkDataMigration', () => {
         await dataMigration.rollback();
 
         const restoredDocuments = await collection.find().toArray();
-
         expect(restoredDocuments).toEqual([document]);
       });
 
-      it('should restore a nested object value in array', async () => {
+      it('should restore a nested value in a number-indexed object', async () => {
         const document = { deep: { key: { 0: 'value' } } };
         await collection.insertMany([document]);
         const dataMigration = new MongoBulkDataMigration({
@@ -433,7 +449,6 @@ describe('MongoBulkDataMigration', () => {
         await dataMigration.rollback();
 
         const restoredDocuments = await collection.find().toArray();
-
         expect(restoredDocuments).toEqual([document]);
       });
     });
@@ -786,8 +801,8 @@ describe('MongoBulkDataMigration', () => {
           options: { bypassRollbackValidation: true },
           update: updateQuery,
         });
-        await dataMigration.update();
 
+        await dataMigration.update();
         await dataMigration.rollback();
 
         const restoredDoc = await db
@@ -874,7 +889,6 @@ describe('MongoBulkDataMigration', () => {
         };
         await collection.insertMany([matchDocument]);
         await collection.find().toArray();
-
         const migration = new MongoBulkDataMigration<any>({
           ...DM_DEFAULT_SETUP,
           update: {
@@ -925,7 +939,6 @@ describe('MongoBulkDataMigration', () => {
         };
         await collection.insertMany([matchDocument, fullyUnmatchedDocument]);
         const insertedDocuments = await collection.find().toArray();
-
         const migration = new MongoBulkDataMigration<any>({
           ...DM_DEFAULT_SETUP,
           update: {
@@ -954,7 +967,6 @@ describe('MongoBulkDataMigration', () => {
           keys: [{ subKey1: 'match_me' }, { subKey1: 'do_not_match_me' }],
         };
         await collection.insertMany([document]);
-
         const migration = new MongoBulkDataMigration<any>({
           ...DM_DEFAULT_SETUP,
           update: {
