@@ -1,6 +1,6 @@
 # MongoDB bulk data migration for NodeJs
 
-_Mongodb schema migration utility_
+Mongodb schema migration utility.
 
 ## About
 
