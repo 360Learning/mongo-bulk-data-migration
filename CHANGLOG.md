@@ -10,7 +10,6 @@
 - Improve automatic rollback for nested paths - Thanks [@hugop95](https://github.com/hugop95) https://github.com/360Learning/mongo-bulk-data-migration/pull/19
 - Upgrade dev packages
 
-
 ## 1.4.5 (2024-10-28)
 
 - Patch 1.4.4 regression for auto rollback on nested properties
