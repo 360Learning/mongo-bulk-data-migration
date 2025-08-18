@@ -119,7 +119,7 @@ new MongoBulkDataMigration<Score>({
 new MongoBulkDataMigration({ ..., options: { ... } })
 ```
 
-- `maxBulkSize` (default: 1000): Batch size of of updates to execute. 1000 is a good number. If your updated are huge, consider decreasing it to avoid running high memory. If documents are tiny, 10k might slightly improve performances on huge databases.
+- `maxBulkSize` (default: 1000): batch size of updates to execute. 1000 is a good number. If your updates are huge, consider decreasing it to avoid running high memory. If documents are tiny, 10k might slightly improve performances on huge databases.
 - `dontCount` (default: false): will skip initial filter `count()` or aggregate `$count`. Logs won't print the total progression if disabled.
 - `projectionBackupFilter` (default: none): filter properties to save and auto-rollback. Necessary if your update needs virtual fields.
 - `bypassRollbackValidation` and `bypassUpdateValidation` (default: false): Will set validationLevel to "off" then to "moderate".
