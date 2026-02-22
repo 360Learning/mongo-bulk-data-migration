@@ -690,6 +690,102 @@ describe('MongoBulkDataMigration', () => {
       });
     });
 
+    describe('Setting an entire object', () => {
+      it('should restore the entire non-nested empty set object', async () => {
+        await collection.insertMany([{ a: { key: 1 } }]);
+        const insertedDocuments = await collection.find().toArray();
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          update: { $set: { a: {} } },
+        });
+
+        await dataMigration.update();
+        await dataMigration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+        expect(restoredDocuments).toEqual(insertedDocuments);
+      });
+
+      it('should restore the entire non-nested non-empty set object', async () => {
+        await collection.insertMany([{ a: { key: 1 } }]);
+        const insertedDocuments = await collection.find().toArray();
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          update: { $set: { a: { newKey: 1 } } },
+        });
+
+        await dataMigration.update();
+        await dataMigration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+        expect(restoredDocuments).toEqual(insertedDocuments);
+      });
+
+      it('should restore the entire nested empty set object', async () => {
+        await collection.insertMany([
+          {
+            a: 0,
+            b: {
+              a1: 0,
+              b1: {
+                a2: 0,
+                b2: 0,
+              },
+            },
+          },
+        ]);
+        const insertedDocuments = await collection.find().toArray();
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          update: {
+            $set: {
+              a: 1,
+              'b.a1': 1,
+              'b.b1': {},
+            },
+          },
+        });
+
+        await dataMigration.update();
+        await dataMigration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+        expect(restoredDocuments).toEqual(insertedDocuments);
+      });
+
+      it('should restore the entire nested non-empty set object', async () => {
+        await collection.insertMany([
+          {
+            a: 0,
+            b: {
+              a1: 0,
+              b1: {
+                a2: 0,
+                b2: 0,
+              },
+            },
+          },
+        ]);
+        const insertedDocuments = await collection.find().toArray();
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          update: {
+            $set: {
+              a: 1,
+              'b.a1': 1,
+              'b.b1': { c: 1 },
+            },
+          },
+        });
+
+        await dataMigration.update();
+        await dataMigration.rollback();
+
+        const restoredDocuments = await collection.find().toArray();
+        expect(restoredDocuments).toEqual(insertedDocuments);
+      });
+    });
+
     describe('Aggregate support', () => {
       it('should perform rollback for an aggregate pipeline', async () => {
         await collection.insertMany([
