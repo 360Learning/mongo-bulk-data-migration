@@ -387,11 +387,11 @@ describe('MongoBulkDataMigration', () => {
       });
 
       it('should restore an array element having objects', async () => {
-        const document = { array: [ { nested: ['nestedValue'] } ] };
+        const document = { array: [{ nested: ['nestedValue'] }] };
         await collection.insertMany([document]);
         const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
-          update: { $unset: { array: 1 } }
+          update: { $unset: { array: 1 } },
         });
 
         await dataMigration.update();
@@ -404,7 +404,7 @@ describe('MongoBulkDataMigration', () => {
           nModified: 1,
         });
         expect(restoredDocuments).toEqual([document]);
-      })
+      });
 
       it('should restore a nested object value', async () => {
         const document = { deep: { key: 'value' } };

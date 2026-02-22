@@ -10,7 +10,11 @@ import type { Document } from 'mongodb';
 export function computeRollbackQuery(updateQuery: any, backup: any) {
   const unsetPropertiesDuringUpdate = Object.keys(updateQuery.$unset || {});
   const setPropertiesDuringUpdate = Object.keys(updateQuery.$set || {});
-  const $set = computeRollbackSet(setPropertiesDuringUpdate, unsetPropertiesDuringUpdate, backup);
+  const $set = computeRollbackSet(
+    setPropertiesDuringUpdate,
+    unsetPropertiesDuringUpdate,
+    backup,
+  );
   const $unsetWithoutPositionals = computeRollbackUnset(
     setPropertiesDuringUpdate,
     backup,
@@ -78,10 +82,8 @@ function computeRollbackSet(
     (rollbackSet, [key, value]) => {
       const parentKeyToFullyRestore = [
         ...setPropertiesDuringUpdate,
-        ...unsetPropertiesDuringUpdate
-      ].find(
-        (setOrUnsetKey) => key.startsWith(`${setOrUnsetKey}.`),
-      );
+        ...unsetPropertiesDuringUpdate,
+      ].find((setOrUnsetKey) => key.startsWith(`${setOrUnsetKey}.`));
       if (parentKeyToFullyRestore && parentKeyToFullyRestore in backup) {
         rollbackSet[parentKeyToFullyRestore] = backup[parentKeyToFullyRestore];
         return rollbackSet;
