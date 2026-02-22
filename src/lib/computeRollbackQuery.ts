@@ -77,8 +77,9 @@ function computeRollbackSet(
   backup: any,
 ): any {
   const flattenBackupDocument = flattenDocument(backup);
+  const flattenBackupDocumentExceptId = _.omit(flattenBackupDocument, '_id');
 
-  return Object.entries(flattenBackupDocument).reduce(
+  return Object.entries(flattenBackupDocumentExceptId).reduce(
     (rollbackSet, [key, value]) => {
       const parentKeyToFullyRestore = [
         ...setPropertiesDuringUpdate,
