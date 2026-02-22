@@ -22,7 +22,7 @@ export function computeRollbackQuery(updateQuery: any, backup: any) {
   );
 
   const { arrayFilters, unsetAdditionalPositional } =
-    _computeArrayFilterAndUnsetWithPositionals(updateQuery, backup);
+    computeArrayFilterAndUnsetWithPositionals(updateQuery, backup);
   const $unset = {
     ...$unsetWithoutPositionals,
     ...unsetAdditionalPositional,
@@ -39,7 +39,7 @@ export function computeRollbackQuery(updateQuery: any, backup: any) {
  * If path contains a "positional argument", we'll have to add the correct
  * arrayFilters options for the $unset operation to work correctly
  */
-function _computeArrayFilterAndUnsetWithPositionals(
+function computeArrayFilterAndUnsetWithPositionals(
   updateQuery: any,
   backup: any,
 ): { arrayFilters: Document[]; unsetAdditionalPositional: any } {
