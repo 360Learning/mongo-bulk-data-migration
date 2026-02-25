@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.2 (2026-02-25)
+
+- Patch nested $set restore - https://github.com/360Learning/mongo-bulk-data-migration/pull/29
+
 ## 1.5.1 (2025-03-27)
 
 - Patch auto-rollback now restore unset properties - Thanks [@hugop95](https://github.com/hugop95) https://github.com/360Learning/mongo-bulk-data-migration/pull/26

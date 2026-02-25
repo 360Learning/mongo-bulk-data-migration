@@ -10,7 +10,11 @@ import type { Document } from 'mongodb';
 export function computeRollbackQuery(updateQuery: any, backup: any) {
   const unsetPropertiesDuringUpdate = Object.keys(updateQuery.$unset || {});
   const setPropertiesDuringUpdate = Object.keys(updateQuery.$set || {});
-  const $set = computeRollbackSet(setPropertiesDuringUpdate, unsetPropertiesDuringUpdate, backup);
+  const $set = computeRollbackSet(
+    setPropertiesDuringUpdate,
+    unsetPropertiesDuringUpdate,
+    backup,
+  );
   const $unsetWithoutPositionals = computeRollbackUnset(
     setPropertiesDuringUpdate,
     backup,
@@ -18,7 +22,7 @@ export function computeRollbackQuery(updateQuery: any, backup: any) {
   );
 
   const { arrayFilters, unsetAdditionalPositional } =
-    _computeArrayFilterAndUnsetWithPositionals(updateQuery, backup);
+    computeArrayFilterAndUnsetWithPositionals(updateQuery, backup);
   const $unset = {
     ...$unsetWithoutPositionals,
     ...unsetAdditionalPositional,
@@ -35,7 +39,7 @@ export function computeRollbackQuery(updateQuery: any, backup: any) {
  * If path contains a "positional argument", we'll have to add the correct
  * arrayFilters options for the $unset operation to work correctly
  */
-function _computeArrayFilterAndUnsetWithPositionals(
+function computeArrayFilterAndUnsetWithPositionals(
   updateQuery: any,
   backup: any,
 ): { arrayFilters: Document[]; unsetAdditionalPositional: any } {
@@ -73,15 +77,14 @@ function computeRollbackSet(
   backup: any,
 ): any {
   const flattenBackupDocument = flattenDocument(backup);
+  const flattenBackupDocumentExceptId = _.omit(flattenBackupDocument, '_id');
 
-  return Object.entries(flattenBackupDocument).reduce(
+  return Object.entries(flattenBackupDocumentExceptId).reduce(
     (rollbackSet, [key, value]) => {
       const parentKeyToFullyRestore = [
         ...setPropertiesDuringUpdate,
-        ...unsetPropertiesDuringUpdate
-      ].find(
-        (setOrUnsetKey) => key.startsWith(`${setOrUnsetKey}.`),
-      );
+        ...unsetPropertiesDuringUpdate,
+      ].find((setOrUnsetKey) => key.startsWith(`${setOrUnsetKey}.`));
       if (parentKeyToFullyRestore && parentKeyToFullyRestore in backup) {
         rollbackSet[parentKeyToFullyRestore] = backup[parentKeyToFullyRestore];
         return rollbackSet;
@@ -106,6 +109,18 @@ function computeRollbackSet(
           }
           return rollbackSet;
         }
+      }
+
+      const setPropertyKeyStartsWith = setPropertiesDuringUpdate.find(
+        (setProperty) => key.startsWith(`${setProperty}.`),
+      );
+      if (setPropertyKeyStartsWith) {
+        const keyToSet = key.slice(setPropertyKeyStartsWith.length + 1);
+        rollbackSet[setPropertyKeyStartsWith] = {
+          ...(rollbackSet[setPropertyKeyStartsWith] ?? {}),
+          [keyToSet]: value,
+        };
+        return rollbackSet;
       }
 
       rollbackSet[key] = value;

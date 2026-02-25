@@ -1,4 +1,5 @@
 import { computeRollbackQuery } from '../../src/lib/computeRollbackQuery';
+import { ObjectId } from 'mongodb';
 
 describe('computeRollbackQuery', () => {
   it('should return an empty object if there is no operation to rollback', async () => {
@@ -11,6 +12,15 @@ describe('computeRollbackQuery', () => {
   });
 
   describe('$set', () => {
+    it('should not contain `_id`', async () => {
+      const updateQuery = { $set: { key: 'value2' } };
+      const backup = { _id: new ObjectId(), key: 'value1' };
+
+      const restoreQuery = computeRollbackQuery(updateQuery, backup);
+
+      expect(restoreQuery.$set).not.toHaveProperty('_id');
+    });
+
     describe('resulting from a $set', () => {
       it('should set back the original value', async () => {
         const updateQuery = { $set: { key: 'value2' } };
