@@ -528,7 +528,7 @@ describe('MongoBulkDataMigration', () => {
   });
 
   describe('FETCH_ALL', () => {
-    it('should resume migration only on new documents, skipping already migrated ones', async () => {
+    it('should resume migration only on documents inserted after the last migrated one', async () => {
       await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
       const update = { $set: { key: 10 } };
 
@@ -567,6 +567,43 @@ describe('MongoBulkDataMigration', () => {
         { key: 10 },
         { key: 10 },
       ]);
+    });
+
+    // Limitation: the FETCH_ALL relies on the last _id fetch, this is assumed for performances reasons
+    it('[limitation] should not migrate a document with an older _id inserted after first migration', async () => {
+      await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
+      const update = { $set: { key: 10 } };
+
+      // First run: migrate all existing documents
+      const firstRun = new MongoBulkDataMigration({
+        ...DM_DEFAULT_SETUP,
+        query: FETCH_ALL,
+        update,
+      });
+      await firstRun.update();
+
+      // ---- Simulation of a migration resume ---
+      // A document with an old _id is inserted (e.g. restored from a backup)
+      const { ObjectId } = require('mongodb');
+      const oldId = new ObjectId('000000000000000000000001');
+      await collection.insertOne({ _id: oldId, key: 99 });
+
+      // Second run: resume with FETCH_ALL — old _id should be skipped
+      const secondRun = new MongoBulkDataMigration({
+        ...DM_DEFAULT_SETUP,
+        query: FETCH_ALL,
+        update,
+      });
+      const resumeResults = await secondRun.update();
+
+      expect(resumeResults).toEqual({
+        ...INITIAL_BULK_INFOS,
+        nMatched: 0,
+        nModified: 0,
+      });
+      // The old document was not migrated
+      const oldDoc = await collection.findOne({ _id: oldId });
+      expect(oldDoc?.key).toEqual(99);
     });
   });
 

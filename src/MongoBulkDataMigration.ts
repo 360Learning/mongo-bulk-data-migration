@@ -293,13 +293,14 @@ export default class MongoBulkDataMigration<TSchema extends Document>
     if (this.migrationInfos.query !== (FETCH_ALL as any)) {
       return;
     }
-    const rolledBackIds = await rollbackCollection
+    const lastBackup = await rollbackCollection
       .find({}, { projection: { _id: 1 } })
-      .map((doc) => (doc as any)._id)
-      .toArray();
+      .sort({ _id: -1 })
+      .limit(1)
+      .next();
 
-    this.migrationInfos.query = rolledBackIds.length
-      ? { _id: { $nin: rolledBackIds } }
+    this.migrationInfos.query = lastBackup
+      ? ({ _id: { $gt: lastBackup._id } } as MigrationInfos<TSchema>['query'])
       : {};
   }
 
