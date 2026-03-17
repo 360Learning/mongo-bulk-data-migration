@@ -89,7 +89,7 @@ export default class MongoBulkDataMigration<
       operation: (config as DMInstanceSpecialOperation<TSchema>).operation,
       projection: (config as DMInstanceFilter<TSchema>).projection,
       rollback: (config as DMInstanceFilter<TSchema>).rollback,
-      query: (config as DMInstanceFilter<TSchema>).query as MigrationInfos<TSchema>['query'],
+      query: (config as DMInstanceFilter<TSchema>).query,
       update: (config as DMInstanceFilter<TSchema>).update,
     };
 
