@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0 (2026-02-25)
+
+- Automatic resume for empty queries using `FETCH_ALL` - https://github.com/360Learning/mongo-bulk-data-migration/pull/31
+
 ## 1.5.2 (2026-02-25)
 
 - Patch nested $set restore - https://github.com/360Learning/mongo-bulk-data-migration/pull/29
