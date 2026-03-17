@@ -27,6 +27,8 @@ const COUNT_TOO_LONG_WARNING_THRESHOLD_MS = 30000;
 const COLLECTION_VALIDATION_LEVEL = 'moderate';
 /** Fully delete collection, use with operation:DELETE_COLLECTION */
 export const DELETE_COLLECTION = Symbol();
+/** Fetches all documents excluding already rolled-back ones, use with query:FETCH_ALL */
+export const FETCH_ALL = Symbol();
 const defaultLogger = {
   info: (...args: unknown[]) => {
     if (process.env.NODE_ENV === 'test') {
@@ -78,7 +80,7 @@ export default class MongoBulkDataMigration<TSchema extends Document>
       operation: (config as DMInstanceSpecialOperation<TSchema>).operation,
       projection: (config as DMInstanceFilter<TSchema>).projection,
       rollback: (config as DMInstanceFilter<TSchema>).rollback,
-      query: (config as DMInstanceFilter<TSchema>).query,
+      query: (config as DMInstanceFilter<TSchema>).query as MigrationInfos<TSchema>['query'],
       update: (config as DMInstanceFilter<TSchema>).update,
     };
 
@@ -121,6 +123,8 @@ export default class MongoBulkDataMigration<TSchema extends Document>
       );
       return { ok: status ? 1 : 0 } as any;
     }
+
+    await this.resolveAutomaticResumeQuery(rollbackCollection);
 
     await this.lowerValidationLevel('update');
     const { cursor, totalEntries } =
@@ -281,6 +285,22 @@ export default class MongoBulkDataMigration<TSchema extends Document>
         setTimeout(resolve, this.options.throttle),
       );
     }
+  }
+
+  private async resolveAutomaticResumeQuery(
+    rollbackCollection: Collection<TSchema>,
+  ): Promise<void> {
+    if (this.migrationInfos.query !== (FETCH_ALL as any)) {
+      return;
+    }
+    const rolledBackIds = await rollbackCollection
+      .find({}, { projection: { _id: 1 } })
+      .map((doc) => (doc as any)._id)
+      .toArray();
+
+    this.migrationInfos.query = rolledBackIds.length
+      ? { _id: { $nin: rolledBackIds } }
+      : {};
   }
 
   async rollback(): Promise<BulkOperationResult> {

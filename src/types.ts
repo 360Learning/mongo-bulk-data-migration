@@ -7,7 +7,10 @@ import type {
   Document,
 } from 'mongodb';
 import type { DELETE_OPERATION } from './lib/MigrationBulk';
-import { DELETE_COLLECTION } from './MongoBulkDataMigration';
+import {
+  DELETE_COLLECTION,
+  FETCH_ALL,
+} from './MongoBulkDataMigration';
 
 export type DataMigrationOptions<TSchema> = {
   /** Array filters to use in case of a migration on nested object in arrays */
@@ -89,8 +92,8 @@ export type DMInstanceFilter<TSchema extends Document> =
   DMInstanceBase<TSchema> & {
     /** Projected properties (and backed up values) */
     projection: FindOptions<TSchema>['projection'];
-    /** Mongo query for documents to migrate OR mongo aggregation pipeline */
-    query: Filter<TSchema>;
+    /** Mongo query for documents to migrate, mongo aggregation pipeline, or FETCH_ALL to resume excluding rolled-back documents */
+    query: Filter<TSchema> | typeof FETCH_ALL;
   };
 
 type DMInstanceBase<TSchema> = {

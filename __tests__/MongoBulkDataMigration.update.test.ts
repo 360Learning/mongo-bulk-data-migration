@@ -1,6 +1,10 @@
 import _ from 'lodash';
 import type { Collection, Db, Document, ObjectId, UpdateFilter } from 'mongodb';
-import { MongoBulkDataMigration, DELETE_OPERATION } from '../src';
+import {
+  MongoBulkDataMigration,
+  DELETE_OPERATION,
+  FETCH_ALL,
+} from '../src';
 import { INITIAL_BULK_INFOS } from '../src/lib/AbstractBulkOperationResults';
 import { LoggerInterface } from '../src/types';
 
@@ -519,6 +523,49 @@ describe('MongoBulkDataMigration', () => {
           ],
         },
         _.omit(fullyUnmatchedDocument, '_id'),
+      ]);
+    });
+  });
+
+  describe('FETCH_ALL', () => {
+    it('should resume migration only on new documents, skipping already migrated ones', async () => {
+      await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
+      const update = { $set: { key: 10 } };
+
+      // First run: migrate all existing documents
+      const firstRun = new MongoBulkDataMigration({
+        ...DM_DEFAULT_SETUP,
+        query: FETCH_ALL,
+        update,
+      });
+      await firstRun.update();
+
+      // ---- Simulation of a migration resume ---
+      // New documents arrive after first migration
+      await collection.insertMany([{ key: 4 }, { key: 5 }]);
+
+      // Second run: resume with FETCH_ALL
+      const secondRun = new MongoBulkDataMigration({
+        ...DM_DEFAULT_SETUP,
+        query: FETCH_ALL,
+        update,
+      });
+      const resumeResults = await secondRun.update();
+
+      expect(resumeResults).toEqual({
+        ...INITIAL_BULK_INFOS,
+        nMatched: 2,
+        nModified: 2,
+      });
+      const documents = await collection
+        .find({}, { projection: { _id: 0 } })
+        .toArray();
+      expect(documents).toEqual([
+        { key: 10 },
+        { key: 10 },
+        { key: 10 },
+        { key: 10 },
+        { key: 10 },
       ]);
     });
   });
