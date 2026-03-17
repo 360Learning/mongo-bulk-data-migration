@@ -20,7 +20,7 @@ import type {
   RollbackDocument,
   RollBackUpdateObject,
 } from './types';
-import type { Collection, Document, ObjectId, WithId } from 'mongodb';
+import type { Collection, Document, Filter, ObjectId, WithId } from 'mongodb';
 
 const DEFAULT_BULK_SIZE = 5000;
 const COUNT_TOO_LONG_WARNING_THRESHOLD_MS = 30000;
@@ -45,8 +45,12 @@ const defaultLogger = {
   },
 };
 
-export default class MongoBulkDataMigration<TSchema extends Document>
-  implements RollbackableUpdate
+export default class MongoBulkDataMigration<
+  TSchema extends Document,
+  TQuery extends
+    | Filter<TSchema>
+    | typeof FETCH_ALL = Filter<TSchema>,
+> implements RollbackableUpdate
 {
   private readonly options: DataMigrationOptions<TSchema> = {
     arrayFilters: [],
@@ -70,7 +74,12 @@ export default class MongoBulkDataMigration<TSchema extends Document>
    * @see <a href="/doc/softwareDesigns/bulkDataMigration/index.md">More information in the software design document</a>
    * @param config
    */
-  constructor(config: DataMigrationConfig<TSchema>) {
+  constructor(
+    ...args: [keyof TQuery] extends [never]
+      ? ['Use FETCH_ALL instead of an empty query {}']
+      : [config: DataMigrationConfig<TSchema, TQuery>]
+  ) {
+    const config = args[0] as DataMigrationConfig<TSchema, TQuery>;
     this.id = config.id;
     this.collectionName = config.collectionName;
     Object.assign(this.options, { ...config.options });

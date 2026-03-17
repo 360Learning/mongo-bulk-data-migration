@@ -64,16 +64,19 @@ export type MigrationInfos<TSchema extends Document> = {
       ) => Promise<UpdateFilter<TSchema>> | UpdateFilter<TSchema>);
 };
 
-export type DataMigrationConfig<TSchema extends Document> =
+export type DataMigrationConfig<
+  TSchema extends Document,
+  TQuery extends Filter<TSchema> | typeof FETCH_ALL = Filter<TSchema>,
+> =
   | DMInstanceSpecialOperation<TSchema>
-  | DMInstanceSpecialOperationDropDocument<TSchema>
+  | DMInstanceSpecialOperationDropDocument<TSchema, TQuery>
   | DMInstanceAggregate<TSchema>
-  | DMInstanceFilter<TSchema>;
+  | DMInstanceFilter<TSchema, TQuery>;
 
-type DMInstanceSpecialOperationDropDocument<TSchema> = Omit<
-  DMInstanceFilter<TSchema>,
-  'projection'
-> & {
+type DMInstanceSpecialOperationDropDocument<
+  TSchema extends Document,
+  TQuery extends Filter<TSchema> | typeof FETCH_ALL = Filter<TSchema>,
+> = Omit<DMInstanceFilter<TSchema, TQuery>, 'projection'> & {
   update: typeof DELETE_OPERATION;
 };
 
@@ -88,13 +91,15 @@ export type DMInstanceSpecialOperation<TSchema> = Pick<
   operation: typeof DELETE_COLLECTION;
 };
 
-export type DMInstanceFilter<TSchema extends Document> =
-  DMInstanceBase<TSchema> & {
-    /** Projected properties (and backed up values) */
-    projection: FindOptions<TSchema>['projection'];
-    /** Mongo query for documents to migrate, mongo aggregation pipeline, or FETCH_ALL to resume excluding rolled-back documents */
-    query: Filter<TSchema> | typeof FETCH_ALL;
-  };
+export type DMInstanceFilter<
+  TSchema extends Document,
+  TQuery extends Filter<TSchema> | typeof FETCH_ALL = Filter<TSchema>,
+> = DMInstanceBase<TSchema> & {
+  /** Projected properties (and backed up values) */
+  projection: FindOptions<TSchema>['projection'];
+  /** Mongo query for documents to migrate, or FETCH_ALL to resume excluding already-migrated documents */
+  query: TQuery;
+};
 
 type DMInstanceBase<TSchema> = {
   /** Targeted collection */

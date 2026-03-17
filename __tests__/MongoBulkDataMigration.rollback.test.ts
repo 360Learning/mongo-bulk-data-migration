@@ -280,6 +280,7 @@ describe('MongoBulkDataMigration', () => {
     describe('rollback twice', () => {
       it('[non idempotent scripts] should restore the initial documents', async () => {
         await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
+        // @ts-expect-error Use FETCH_ALL instead of an empty query {}
         const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           query: {},
@@ -316,6 +317,7 @@ describe('MongoBulkDataMigration', () => {
 
       it('[idempotent scripts] should restore the initial documents of the first migration', async () => {
         await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
+        // @ts-expect-error Use FETCH_ALL instead of an empty query {}
         const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           query: {},
