@@ -133,11 +133,11 @@ export default class MongoBulkDataMigration<
       return { ok: status ? 1 : 0 } as any;
     }
 
-    await this.resolveAutomaticResumeQuery(rollbackCollection);
-
     await this.lowerValidationLevel('update');
-    const { cursor, totalEntries } =
-      await this.getCursorAndCount(migrationCollection);
+    const { cursor, totalEntries } = await this.getCursorAndCount(
+      migrationCollection,
+      rollbackCollection,
+    );
     const formattedTotalEntries =
       totalEntries === NO_COUNT_AVAILABLE
         ? 'N/A (dontCount option ON)'
@@ -202,8 +202,14 @@ export default class MongoBulkDataMigration<
     return bulkMigration.getResults();
   }
 
-  private async getCursorAndCount(migrationCollection: Collection<TSchema>) {
-    const cursor = getCursor(this.migrationInfos);
+  private async getCursorAndCount(
+    migrationCollection: Collection<TSchema>,
+    rollbackCollection: Collection<TSchema>,
+  ) {
+    const resolvedQuery =
+      await this.resolveQuery(rollbackCollection)
+
+    const cursor = getCursor(resolvedQuery, this.migrationInfos);
     const countTakingTooLongTimeout = setTimeout(
       () =>
         this.logger.warn(
@@ -214,11 +220,14 @@ export default class MongoBulkDataMigration<
     );
     const totalEntries = this.options.dontCount
       ? NO_COUNT_AVAILABLE
-      : await getTotalEntries(this.migrationInfos);
+      : await getTotalEntries(resolvedQuery);
     clearTimeout(countTakingTooLongTimeout);
     return { cursor, totalEntries };
 
-    function getCursor({ query, projection }: MigrationInfos<TSchema>) {
+    function getCursor(
+      query: Filter<TSchema> | MongoPipeline,
+      { projection }: MigrationInfos<TSchema>,
+    ) {
       if (isPipeline(query)) {
         const pipelineWithProjection = query.concat(
           _.isEmpty(projection) ? [] : [{ $project: projection }],
@@ -228,7 +237,7 @@ export default class MongoBulkDataMigration<
       return migrationCollection.find(query, { projection });
     }
 
-    async function getTotalEntries({ query }: MigrationInfos<TSchema>) {
+    async function getTotalEntries(query: Filter<TSchema> | MongoPipeline) {
       if (isPipeline(query)) {
         const pipelineComputeTotal = query.concat({ $count: 'totalEntries' });
         const cursorComputeTotal =
@@ -296,11 +305,11 @@ export default class MongoBulkDataMigration<
     }
   }
 
-  private async resolveAutomaticResumeQuery(
+  private async resolveQuery(
     rollbackCollection: Collection<TSchema>,
-  ): Promise<void> {
-    if (this.migrationInfos.query !== (FETCH_ALL as any)) {
-      return;
+  ): Promise<Filter<TSchema> | MongoPipeline> {
+    if (this.migrationInfos.query !== FETCH_ALL) {
+      return this.migrationInfos.query;
     }
     const lastBackup = await rollbackCollection
       .find({}, { projection: { _id: 1 } })
@@ -308,8 +317,8 @@ export default class MongoBulkDataMigration<
       .limit(1)
       .next();
 
-    this.migrationInfos.query = lastBackup
-      ? ({ _id: { $gt: lastBackup._id } } as MigrationInfos<TSchema>['query'])
+    return lastBackup
+      ? ({ _id: { $gt: lastBackup._id } } as Filter<TSchema>)
       : {};
   }
 

@@ -55,7 +55,7 @@ export type MigrationInfos<TSchema extends Document> = {
   operation?: typeof DELETE_COLLECTION;
   projection: FindOptions<TSchema>['projection'];
   rollback?: (backup?: RollbackDocument['backup']) => RollBackUpdateObject;
-  query: Filter<TSchema> | MongoPipeline;
+  query: Filter<TSchema> | MongoPipeline | typeof FETCH_ALL;
   update:
     | UpdateFilter<TSchema>
     | typeof DELETE_OPERATION
