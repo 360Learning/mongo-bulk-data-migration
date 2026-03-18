@@ -36,6 +36,7 @@
     "lint": "eslint . --ext .ts --ext .mts",
     "test": "NODE_ENV=test jest --coverage --detectOpenHandles",
     "prettier": "prettier --config .prettierrc --write .",
+    "prettier:check": "prettier --config .prettierrc --check .",
     "test:watch": "jest --watch"
   },
   "peerDependencies": {
