@@ -15,6 +15,7 @@
     "strictBuiltinIteratorReturn": true,
     "strictFunctionTypes": true,
     "strictNullChecks": true,
+    "useUnknownInCatchVariables": true,
 
     "target": "es2022",
     "module": "commonjs",

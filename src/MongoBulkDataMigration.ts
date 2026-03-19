@@ -441,7 +441,12 @@ export default class MongoBulkDataMigration<
     try {
       await migrationCollection.drop();
     } catch (err) {
-      if (err?.message === 'ns not found') {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'message' in err &&
+        err.message === 'ns not found'
+      ) {
         return;
       }
       throw err;
