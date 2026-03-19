@@ -1,5 +1,6 @@
 import _ from 'lodash';
-import type { Collection, Db, Document, ObjectId, UpdateFilter } from 'mongodb';
+// import { ObjectId } from 'bson';
+import { Collection, Db, Document, ObjectId, UpdateFilter } from 'mongodb';
 import {
   MongoBulkDataMigration,
   DELETE_OPERATION,
@@ -584,7 +585,6 @@ describe('MongoBulkDataMigration', () => {
 
       // ---- Simulation of a migration resume ---
       // A document with an old _id is inserted (e.g. restored from a backup)
-      const { ObjectId } = require('mongodb');
       const oldId = new ObjectId('000000000000000000000001');
       await collection.insertOne({ _id: oldId, key: 99 });
 
