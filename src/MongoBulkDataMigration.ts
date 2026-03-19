@@ -20,13 +20,15 @@ import type {
   RollbackDocument,
   RollBackUpdateObject,
 } from './types';
-import type { Collection, Document, ObjectId, WithId } from 'mongodb';
+import type { Collection, Document, Filter, ObjectId, WithId } from 'mongodb';
 
 const DEFAULT_BULK_SIZE = 5000;
 const COUNT_TOO_LONG_WARNING_THRESHOLD_MS = 30000;
 const COLLECTION_VALIDATION_LEVEL = 'moderate';
 /** Fully delete collection, use with operation:DELETE_COLLECTION */
 export const DELETE_COLLECTION = Symbol();
+/** Fetches all documents excluding already rolled-back ones, use with query:FETCH_ALL */
+export const FETCH_ALL = Symbol();
 const defaultLogger = {
   info: (...args: unknown[]) => {
     if (process.env.NODE_ENV === 'test') {
@@ -43,8 +45,10 @@ const defaultLogger = {
   },
 };
 
-export default class MongoBulkDataMigration<TSchema extends Document>
-  implements RollbackableUpdate
+export default class MongoBulkDataMigration<
+  TSchema extends Document,
+  TQuery extends Filter<TSchema> | typeof FETCH_ALL = Filter<TSchema>,
+> implements RollbackableUpdate
 {
   private readonly options: DataMigrationOptions<TSchema> = {
     arrayFilters: [],
@@ -68,7 +72,12 @@ export default class MongoBulkDataMigration<TSchema extends Document>
    * @see <a href="/doc/softwareDesigns/bulkDataMigration/index.md">More information in the software design document</a>
    * @param config
    */
-  constructor(config: DataMigrationConfig<TSchema>) {
+  constructor(
+    ...args: [keyof TQuery] extends [never]
+      ? ['Use FETCH_ALL instead of an empty query {}']
+      : [config: DataMigrationConfig<TSchema, TQuery>]
+  ) {
+    const config = args[0] as DataMigrationConfig<TSchema, TQuery>;
     this.id = config.id;
     this.collectionName = config.collectionName;
     Object.assign(this.options, { ...config.options });
@@ -123,8 +132,10 @@ export default class MongoBulkDataMigration<TSchema extends Document>
     }
 
     await this.lowerValidationLevel('update');
-    const { cursor, totalEntries } =
-      await this.getCursorAndCount(migrationCollection);
+    const { cursor, totalEntries } = await this.getCursorAndCount(
+      migrationCollection,
+      rollbackCollection,
+    );
     const formattedTotalEntries =
       totalEntries === NO_COUNT_AVAILABLE
         ? 'N/A (dontCount option ON)'
@@ -189,8 +200,13 @@ export default class MongoBulkDataMigration<TSchema extends Document>
     return bulkMigration.getResults();
   }
 
-  private async getCursorAndCount(migrationCollection: Collection<TSchema>) {
-    const cursor = getCursor(this.migrationInfos);
+  private async getCursorAndCount(
+    migrationCollection: Collection<TSchema>,
+    rollbackCollection: Collection<TSchema>,
+  ) {
+    const resolvedQuery = await this.resolveQuery(rollbackCollection);
+
+    const cursor = getCursor(resolvedQuery, this.migrationInfos);
     const countTakingTooLongTimeout = setTimeout(
       () =>
         this.logger.warn(
@@ -201,11 +217,14 @@ export default class MongoBulkDataMigration<TSchema extends Document>
     );
     const totalEntries = this.options.dontCount
       ? NO_COUNT_AVAILABLE
-      : await getTotalEntries(this.migrationInfos);
+      : await getTotalEntries(resolvedQuery);
     clearTimeout(countTakingTooLongTimeout);
     return { cursor, totalEntries };
 
-    function getCursor({ query, projection }: MigrationInfos<TSchema>) {
+    function getCursor(
+      query: Filter<TSchema> | MongoPipeline,
+      { projection }: MigrationInfos<TSchema>,
+    ) {
       if (isPipeline(query)) {
         const pipelineWithProjection = query.concat(
           _.isEmpty(projection) ? [] : [{ $project: projection }],
@@ -215,7 +234,7 @@ export default class MongoBulkDataMigration<TSchema extends Document>
       return migrationCollection.find(query, { projection });
     }
 
-    async function getTotalEntries({ query }: MigrationInfos<TSchema>) {
+    async function getTotalEntries(query: Filter<TSchema> | MongoPipeline) {
       if (isPipeline(query)) {
         const pipelineComputeTotal = query.concat({ $count: 'totalEntries' });
         const cursorComputeTotal =
@@ -281,6 +300,23 @@ export default class MongoBulkDataMigration<TSchema extends Document>
         setTimeout(resolve, this.options.throttle),
       );
     }
+  }
+
+  private async resolveQuery(
+    rollbackCollection: Collection<TSchema>,
+  ): Promise<Filter<TSchema> | MongoPipeline> {
+    if (this.migrationInfos.query !== FETCH_ALL) {
+      return this.migrationInfos.query;
+    }
+    const lastBackup = await rollbackCollection
+      .find({}, { projection: { _id: 1 } })
+      .sort({ _id: -1 })
+      .limit(1)
+      .next();
+
+    return lastBackup
+      ? ({ _id: { $gt: lastBackup._id } } as Filter<TSchema>)
+      : {};
   }
 
   async rollback(): Promise<BulkOperationResult> {

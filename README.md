@@ -142,12 +142,30 @@ new MongoBulkDataMigration<Score>({
   id: 'scores_total_new_field',
   collectionName: 'scores',
   projection: { scoreA: 1, scoreB: 1 },
-  query: {},
+  query: FETCH_ALL,
   update: (doc) => {
     $set: {
       total: doc.scoreA + doc.scoreB;
     }
   },
+});
+```
+
+### Automatic resume (`query: FETCH_ALL`)
+
+If you don't can't provide a query to fetch only non-migrated documents (like `newField:{$exists:false}`), you can let MBDM continue according the last `_id` processed:
+
+```ts
+import { MongoBulkDataMigration, FETCH_ALL } from "@360-l/mongo-bulk-data-migration";
+...
+new MongoBulkDataMigration<Score>({
+    db,
+    id: "update_all_totals",
+    collectionName: "scores",
+    projection: { total:1 },
+    // Automatic resume, iso {}
+    query: FETCH_ALL,
+    update: () => ({ total: total + 1 }),
 });
 ```
 
