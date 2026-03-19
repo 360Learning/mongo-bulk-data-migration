@@ -1,11 +1,7 @@
 import _ from 'lodash';
 // import { ObjectId } from 'bson';
 import { Collection, Db, Document, ObjectId, UpdateFilter } from 'mongodb';
-import {
-  MongoBulkDataMigration,
-  DELETE_OPERATION,
-  FETCH_ALL,
-} from '../src';
+import { MongoBulkDataMigration, DELETE_OPERATION, FETCH_ALL } from '../src';
 import { INITIAL_BULK_INFOS } from '../src/lib/AbstractBulkOperationResults';
 import { LoggerInterface } from '../src/types';
 

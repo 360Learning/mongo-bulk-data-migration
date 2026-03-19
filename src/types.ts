@@ -7,10 +7,7 @@ import type {
   Document,
 } from 'mongodb';
 import type { DELETE_OPERATION } from './lib/MigrationBulk';
-import {
-  DELETE_COLLECTION,
-  FETCH_ALL,
-} from './MongoBulkDataMigration';
+import { DELETE_COLLECTION, FETCH_ALL } from './MongoBulkDataMigration';
 
 export type DataMigrationOptions<TSchema> = {
   /** Array filters to use in case of a migration on nested object in arrays */

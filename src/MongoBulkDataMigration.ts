@@ -47,9 +47,7 @@ const defaultLogger = {
 
 export default class MongoBulkDataMigration<
   TSchema extends Document,
-  TQuery extends
-    | Filter<TSchema>
-    | typeof FETCH_ALL = Filter<TSchema>,
+  TQuery extends Filter<TSchema> | typeof FETCH_ALL = Filter<TSchema>,
 > implements RollbackableUpdate
 {
   private readonly options: DataMigrationOptions<TSchema> = {
@@ -206,8 +204,7 @@ export default class MongoBulkDataMigration<
     migrationCollection: Collection<TSchema>,
     rollbackCollection: Collection<TSchema>,
   ) {
-    const resolvedQuery =
-      await this.resolveQuery(rollbackCollection)
+    const resolvedQuery = await this.resolveQuery(rollbackCollection);
 
     const cursor = getCursor(resolvedQuery, this.migrationInfos);
     const countTakingTooLongTimeout = setTimeout(

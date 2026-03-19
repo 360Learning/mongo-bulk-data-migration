@@ -152,7 +152,9 @@ new MongoBulkDataMigration<Score>({
 ```
 
 ### Automatic resume (`query: FETCH_ALL`)
+
 If you don't can't provide a query to fetch only non-migrated documents (like `newField:{$exists:false}`), you can let MBDM continue according the last `_id` processed:
+
 ```ts
 import { MongoBulkDataMigration, FETCH_ALL } from "@360-l/mongo-bulk-data-migration";
 ...
@@ -161,12 +163,11 @@ new MongoBulkDataMigration<Score>({
     id: "update_all_totals",
     collectionName: "scores",
     projection: { total:1 },
-    // Automatic resume, iso {} 
+    // Automatic resume, iso {}
     query: FETCH_ALL,
     update: () => ({ total: total + 1 }),
 });
 ```
-
 
 ### Delete documents (`update: DELETE_OPERATION`)
 
