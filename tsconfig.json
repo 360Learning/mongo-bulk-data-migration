@@ -10,11 +10,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "skipLibCheck": true,
-    "strict": false,
-    "strictBindCallApply": true,
-    "strictBuiltinIteratorReturn": true,
-    "strictFunctionTypes": true,
-    "strictNullChecks": true,
+    "strict": true,
     "useUnknownInCatchVariables": true,
 
     "target": "es2022",
