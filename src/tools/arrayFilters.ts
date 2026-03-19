@@ -1,3 +1,5 @@
+import type { Document } from 'mongodb';
+
 /**
  * Spots "positional operator" path in string for array filters
  * Example: xxx.$[element_name].yyy
@@ -72,7 +74,7 @@ export function hasPathMatchingPositionalOperators(
  */
 export function buildArrayFiltersOptionToUnset(path: string) {
   let positionalElementNameMatch;
-  const arrayFilters = [];
+  const arrayFilters: Document[] = [];
   do {
     positionalElementNameMatch = ARRAY_FILTER_OPERATION_PATTERN.exec(path);
     if (positionalElementNameMatch) {
@@ -115,7 +117,7 @@ function _buildSubPathWithPositionalElementAndNextChild(
     `\\$\\[${positionalElementName}]\\.(\\w+)(?:\\.|$)`,
   );
 
-  const nextChildName = matchRegexp.exec(completePath)[1];
+  const nextChildName = matchRegexp.exec(completePath)?.[1];
 
   return `${positionalElementName}.${nextChildName}`;
 }

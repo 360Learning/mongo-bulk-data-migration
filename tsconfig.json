@@ -1,12 +1,18 @@
 {
   "compilerOptions": {
     /* Type Checking */
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": false,
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
+    "strict": false,
+    "strictBindCallApply": true,
+    "strictBuiltinIteratorReturn": true,
+    "strictFunctionTypes": true,
     "strictNullChecks": true,
 
     "target": "es2022",
