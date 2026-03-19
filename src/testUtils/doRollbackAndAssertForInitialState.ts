@@ -2,7 +2,7 @@ import _ from 'lodash';
 import MongoBulkDataMigration from '../MongoBulkDataMigration';
 import { BulkOperationResult } from '../lib/AbstractBulkOperationResults';
 
-let globalExpect = null;
+let globalExpect: ((value: unknown) => unknown) | null = null;
 
 export function setGlobalExpect(expect: any) {
   globalExpect = expect;
@@ -59,7 +59,7 @@ function assertDeepHaveMembers(
   effectiveDocs: any,
   expectedDocs: any,
 ) {
-  const compareObjectId = (objA, objB) => {
+  const compareObjectId = (objA: string, objB: string) => {
     const sortedIds = [objA, objB].sort();
     return sortedIds[0] === objA ? -1 : 1;
   };

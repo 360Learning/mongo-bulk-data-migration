@@ -226,7 +226,7 @@ describe('MongoBulkDataMigration', () => {
 
     describe('Bulk splitting', () => {
       const END_OF_BULK_LOG = 'Documents migration is successful';
-      let update: UpdateFilter<{ value: number }>;
+      let update: (arg: { value: number }) => UpdateFilter<{ value: number }>;
       beforeEach(async () => {
         await collection.insertMany(
           Array.from({ length: 100 }, (_, i) => ({ value: i + 1 })),
