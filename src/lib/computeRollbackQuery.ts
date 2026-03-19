@@ -43,7 +43,7 @@ function computeArrayFilterAndUnsetWithPositionals(
   updateQuery: any,
   backup: any,
 ): { arrayFilters: Document[]; unsetAdditionalPositional: any } {
-  const unsetAdditionalPositional = {};
+  const unsetAdditionalPositional: Record<string, number> = {};
   const filteredObject = Object.keys(flattenDocument(backup));
   const arrayFilters: Document[] = [];
   const update = Object.keys(flattenDocument(updateQuery.$set ?? {}));

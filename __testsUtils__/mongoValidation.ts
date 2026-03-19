@@ -13,7 +13,7 @@ async function setValidationLevel(
   const errors: Record<string, any> = {};
   for (const collection of collections) {
     try {
-      await global.db.runCommand({
+      await global.db.command({
         collMod: collection,
         validationLevel: validationLevel,
       });

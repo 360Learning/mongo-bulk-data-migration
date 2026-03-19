@@ -54,9 +54,9 @@ export abstract class AbstractBulkOperationResults<TSchema extends Document> {
     this.collection = collection;
     this.totalOperations = totalOperations;
     this.logger = logger;
+    this.bulk = this.collection.initializeUnorderedBulkOp();
     this.totalBulkOps = 0;
     this.results = _.cloneDeep(INITIAL_BULK_INFOS);
-    this.initialize();
   }
 
   abstract logExecutionStatus(executionResults: BulkOperationResult): this;
@@ -76,12 +76,6 @@ export abstract class AbstractBulkOperationResults<TSchema extends Document> {
     return (
       this.results.nMatched + this.results.nUpserted + this.results.nInserted
     );
-  }
-
-  private initialize(): this {
-    this.bulk = this.collection.initializeUnorderedBulkOp();
-    this.totalBulkOps = 0;
-    return this;
   }
 
   public async execute(continueOnBulkWriteError = false): Promise<this> {
@@ -117,7 +111,10 @@ export abstract class AbstractBulkOperationResults<TSchema extends Document> {
     this.mergeResults(resultPartial);
     this.logExecutionStatus(resultPartial);
 
-    return this.initialize();
+    this.bulk = this.collection.initializeUnorderedBulkOp();
+    this.totalBulkOps = 0;
+
+    return this;
   }
 
   private mergeResults(resultB: BulkOperationResult): this {
