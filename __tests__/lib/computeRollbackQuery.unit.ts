@@ -54,6 +54,19 @@ describe('computeRollbackQuery', () => {
           $set: { 'nested.array': ['a', 'b'] },
         });
       });
+
+      it('should set back the nested original object value when the target already existed', async () => {
+        const updateQuery = {
+          $set: { 'a.b': { channels: { email: false, teams: true } } },
+        };
+        const backup = { a: { b: { channels: { email: true } } } };
+
+        const restoreQuery = computeRollbackQuery(updateQuery, backup);
+
+        expect(restoreQuery).toEqual({
+          $set: { 'a.b': { channels: { email: true } } },
+        });
+      });
     });
 
     describe('resulting from an $unset', () => {
