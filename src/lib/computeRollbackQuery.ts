@@ -115,11 +115,10 @@ function computeRollbackSet(
         (setProperty) => key.startsWith(`${setProperty}.`),
       );
       if (setPropertyKeyStartsWith) {
-        const keyToSet = key.slice(setPropertyKeyStartsWith.length + 1);
-        rollbackSet[setPropertyKeyStartsWith] = {
-          ...(rollbackSet[setPropertyKeyStartsWith] ?? {}),
-          [keyToSet]: value,
-        };
+        rollbackSet[setPropertyKeyStartsWith] = _.get(
+          backup,
+          setPropertyKeyStartsWith,
+        );
         return rollbackSet;
       }
 

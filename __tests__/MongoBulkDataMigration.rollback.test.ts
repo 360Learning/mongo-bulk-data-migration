@@ -216,6 +216,25 @@ describe('MongoBulkDataMigration', () => {
       expect(restoredDocuments).toEqual(insertedDocuments);
     });
 
+    it('should restore a nested object value when the target key already existed', async () => {
+      await collection.insertOne({
+        a: { source: { x: { nested: 1 } }, target: { x: { nested: 9 } } },
+      });
+      const insertedDocuments = await collection.find().toArray();
+      const dataMigration = new MongoBulkDataMigration({
+        ...DM_DEFAULT_SETUP,
+        projection: { a: 1 },
+        query: { 'a.source': { $exists: true } },
+        update: { $set: { 'a.target': { x: { nested: 1 } } } },
+      });
+
+      await dataMigration.update();
+      await dataMigration.rollback();
+
+      const restoredDocuments = await collection.find().toArray();
+      expect(restoredDocuments).toEqual(insertedDocuments);
+    });
+
     it('should restore removed documents', async () => {
       await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
       const insertedDocuments = await collection.find().toArray();

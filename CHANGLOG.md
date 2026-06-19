@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.0 (2026-06-19)
+
+- Patch rollback incorrectly restoring nested objects - https://github.com/360Learning/mongo-bulk-data-migration/pull/36
+
 ## 1.6.0 (2026-02-25)
 
 - Automatic resume for empty queries using `FETCH_ALL` - https://github.com/360Learning/mongo-bulk-data-migration/pull/31
