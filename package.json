@@ -5,14 +5,14 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "engines": {
-    "node": ">= 18.0"
+    "node": ">= 20.19.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
     "@eslint/js": "^10.0.1",
     "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.13",
-    "@types/node": "~18",
+    "@types/node": "~20",
     "@typescript-eslint/eslint-plugin": "^8.63.0",
     "@typescript-eslint/parser": "^8.63.0",
     "eslint": "^10.6.0",
