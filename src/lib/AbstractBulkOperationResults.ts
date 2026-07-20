@@ -42,7 +42,6 @@ export abstract class AbstractBulkOperationResults<TSchema extends Document> {
   protected readonly collection: Collection<TSchema>;
   protected readonly results: BulkOperationResult;
   protected bulk: UnorderedBulkOperation;
-  protected totalBulkOps: number;
   protected readonly totalOperations: number | typeof NO_COUNT_AVAILABLE;
   protected readonly logger: LoggerInterface;
 
@@ -55,14 +54,13 @@ export abstract class AbstractBulkOperationResults<TSchema extends Document> {
     this.totalOperations = totalOperations;
     this.logger = logger;
     this.bulk = this.collection.initializeUnorderedBulkOp();
-    this.totalBulkOps = 0;
     this.results = _.cloneDeep(INITIAL_BULK_INFOS);
   }
 
   abstract logExecutionStatus(executionResults: BulkOperationResult): this;
 
   get size() {
-    return this.totalBulkOps;
+    return this.bulk.length;
   }
 
   get progress(): number {
@@ -79,7 +77,7 @@ export abstract class AbstractBulkOperationResults<TSchema extends Document> {
   }
 
   public async execute(continueOnBulkWriteError = false): Promise<this> {
-    if (this.totalBulkOps === 0) {
+    if (this.bulk.length === 0) {
       return this;
     }
 
@@ -112,7 +110,6 @@ export abstract class AbstractBulkOperationResults<TSchema extends Document> {
     this.logExecutionStatus(resultPartial);
 
     this.bulk = this.collection.initializeUnorderedBulkOp();
-    this.totalBulkOps = 0;
 
     return this;
   }
