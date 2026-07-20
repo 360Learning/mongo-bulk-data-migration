@@ -42,16 +42,10 @@ export abstract class AbstractBulkOperationResults<TSchema extends Document> {
   protected readonly collection: Collection<TSchema>;
   protected readonly results: BulkOperationResult;
   protected bulk: UnorderedBulkOperation;
-  protected readonly totalOperations: number | typeof NO_COUNT_AVAILABLE;
   protected readonly logger: LoggerInterface;
 
-  constructor(
-    collection: Collection<TSchema>,
-    logger: LoggerInterface,
-    totalOperations: number,
-  ) {
+  constructor(collection: Collection<TSchema>, logger: LoggerInterface) {
     this.collection = collection;
-    this.totalOperations = totalOperations;
     this.logger = logger;
     this.bulk = this.collection.initializeUnorderedBulkOp();
     this.results = _.cloneDeep(INITIAL_BULK_INFOS);
@@ -61,19 +55,6 @@ export abstract class AbstractBulkOperationResults<TSchema extends Document> {
 
   get size() {
     return this.bulk.length;
-  }
-
-  get progress(): number {
-    if (this.totalOperations === NO_COUNT_AVAILABLE) {
-      return Infinity;
-    }
-    return (this.totalOperationsDone / this.totalOperations) * 100;
-  }
-
-  get totalOperationsDone() {
-    return (
-      this.results.nMatched + this.results.nUpserted + this.results.nInserted
-    );
   }
 
   public async execute(continueOnBulkWriteError = false): Promise<this> {
@@ -141,25 +122,11 @@ export abstract class AbstractBulkOperationResults<TSchema extends Document> {
   }
 
   protected buildLogObject(executionResults: BulkOperationResult) {
-    const usefulLogEntries = Object.entries(executionResults)
-      .filter(([key]) => !['insertedIds', 'upserted'].includes(key))
-      .filter(([, value]) => !_.isEmpty(value) || value > 0);
-    const progress = this.progress;
-    const formattedPercent = Number.isFinite(progress)
-      ? progress.toFixed(2)
-      : 'N/A';
-
-    return {
-      ...Object.fromEntries(usefulLogEntries),
-      progress: {
-        totalOperationsDone: this.totalOperationsDone,
-        estimatedTotalOperations:
-          this.totalOperations === NO_COUNT_AVAILABLE
-            ? 'N/A'
-            : this.totalOperations,
-        percent: formattedPercent,
-      },
-    };
+    return Object.fromEntries(
+      Object.entries(executionResults)
+        .filter(([key]) => !['insertedIds', 'upserted'].includes(key))
+        .filter(([, value]) => !_.isEmpty(value) || value > 0),
+    );
   }
 }
 

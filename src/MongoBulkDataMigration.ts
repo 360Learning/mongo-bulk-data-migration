@@ -151,19 +151,12 @@ export default class MongoBulkDataMigration<
       },
       'Starting migration UPDATE process',
     );
-    const bulkMigration = new MigrationBulk(
-      migrationCollection,
-      this.logger,
-      totalEntries,
-    );
-    const bulkBackup = new BackupBulk(
-      rollbackCollection,
-      this.logger,
-      totalEntries,
-    );
+    const bulkMigration = new MigrationBulk(migrationCollection, this.logger);
+    const bulkBackup = new BackupBulk(rollbackCollection, this.logger);
     const updatePromiseLimiter = pLimit(this.options.maxConcurrentUpdateCalls);
     let updatePromises: Promise<any>[] = [];
 
+    let treatedDocumentsCount = 0;
     let document = (await cursor.next()) as WithId<TSchema> | null;
     while (document !== null) {
       const bulkUpdateWrappedPromise = updatePromiseLimiter(
@@ -190,6 +183,18 @@ export default class MongoBulkDataMigration<
           }
         }
 
+        treatedDocumentsCount += updatePromises.length;
+        this.logger.info(
+          {
+            treatedDocumentsCount,
+            totalEntries: formattedTotalEntries,
+            progress:
+              totalEntries === NO_COUNT_AVAILABLE
+                ? 'N/A (dontCount option ON)'
+                : ((treatedDocumentsCount / totalEntries) * 100).toFixed(2),
+          },
+          'Documents migrated',
+        );
         await this.throttle();
         updatePromises = [];
       }
@@ -357,13 +362,10 @@ export default class MongoBulkDataMigration<
       { collectionName: this.collectionName, id: this.id, totalEntries },
       'Starting migration ROLLBACK process',
     );
-    const bulkRollback = new RollbackBulk(
-      collection,
-      this.logger,
-      totalEntries,
-    );
+    const bulkRollback = new RollbackBulk(collection, this.logger);
 
     await this.lowerValidationLevel('rollback');
+    let treatedDocumentsCount = 0;
     let rollbackDocument =
       (await cursor.next()) as unknown as RollbackDocument | null;
     while (rollbackDocument !== null) {
@@ -383,6 +385,16 @@ export default class MongoBulkDataMigration<
         (await cursor.next()) as unknown as RollbackDocument | null;
       if (!rollbackDocument || bulkRollback.size >= this.options.maxBulkSize) {
         await bulkRollback.execute();
+
+        treatedDocumentsCount += bulkRollback.size;
+        this.logger.info(
+          {
+            treatedDocumentsCount,
+            totalEntries,
+            progress: ((treatedDocumentsCount / totalEntries) * 100).toFixed(2),
+          },
+          'Documents rollbacked',
+        );
       }
     }
 
