@@ -207,18 +207,9 @@ export default class MongoBulkDataMigration<
     const resolvedQuery = await this.resolveQuery(rollbackCollection);
 
     const cursor = getCursor(resolvedQuery, this.migrationInfos);
-    const countTakingTooLongTimeout = setTimeout(
-      () =>
-        this.logger.warn(
-          { COUNT_TOO_LONG_WARNING_THRESHOLD_MS },
-          'Count is taking a significant amount of time, consider using dontCount:true option',
-        ),
-      COUNT_TOO_LONG_WARNING_THRESHOLD_MS,
-    );
     const totalEntries = this.options.dontCount
       ? NO_COUNT_AVAILABLE
-      : await getTotalEntries(resolvedQuery);
-    clearTimeout(countTakingTooLongTimeout);
+      : await getTotalEntries(resolvedQuery, this);
     return { cursor, totalEntries };
 
     function getCursor(
@@ -234,17 +225,33 @@ export default class MongoBulkDataMigration<
       return migrationCollection.find(query, { projection });
     }
 
-    async function getTotalEntries(query: Filter<TSchema> | MongoPipeline) {
-      if (isPipeline(query)) {
-        const pipelineComputeTotal = query.concat({ $count: 'totalEntries' });
-        const cursorComputeTotal =
-          migrationCollection.aggregate(pipelineComputeTotal);
-        const total = (await cursorComputeTotal.next()) as unknown as {
-          totalEntries: number;
-        } | null;
-        return total === null ? 0 : total.totalEntries;
+    async function getTotalEntries(
+      query: Filter<TSchema> | MongoPipeline,
+      that: MongoBulkDataMigration<TSchema, TQuery>,
+    ) {
+      const countTakingTooLongTimeout = setTimeout(
+        () =>
+          that.logger.warn(
+            { COUNT_TOO_LONG_WARNING_THRESHOLD_MS },
+            'Count is taking a significant amount of time, consider using dontCount:true option',
+          ),
+        COUNT_TOO_LONG_WARNING_THRESHOLD_MS,
+      );
+
+      try {
+        if (isPipeline(query)) {
+          const pipelineComputeTotal = query.concat({ $count: 'totalEntries' });
+          const cursorComputeTotal =
+            migrationCollection.aggregate(pipelineComputeTotal);
+          const total = (await cursorComputeTotal.next()) as unknown as {
+            totalEntries: number;
+          } | null;
+          return total === null ? 0 : total.totalEntries;
+        }
+        return migrationCollection.countDocuments(query);
+      } finally {
+        clearTimeout(countTakingTooLongTimeout);
       }
-      return migrationCollection.countDocuments(query);
     }
 
     function isPipeline(
