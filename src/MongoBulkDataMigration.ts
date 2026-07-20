@@ -207,9 +207,7 @@ export default class MongoBulkDataMigration<
     const resolvedQuery = await this.resolveQuery(rollbackCollection);
 
     const cursor = getCursor(resolvedQuery, this.migrationInfos);
-    const totalEntries = this.options.dontCount
-      ? NO_COUNT_AVAILABLE
-      : await getTotalEntries(resolvedQuery, this);
+    const totalEntries = await getTotalEntries(resolvedQuery, this);
     return { cursor, totalEntries };
 
     function getCursor(
@@ -229,6 +227,10 @@ export default class MongoBulkDataMigration<
       query: Filter<TSchema> | MongoPipeline,
       that: MongoBulkDataMigration<TSchema, TQuery>,
     ) {
+      if (that.options.dontCount) {
+        return NO_COUNT_AVAILABLE;
+      }
+
       const countTakingTooLongTimeout = setTimeout(
         () =>
           that.logger.warn(
