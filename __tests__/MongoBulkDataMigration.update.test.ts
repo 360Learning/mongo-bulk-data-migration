@@ -352,32 +352,35 @@ describe('MongoBulkDataMigration', () => {
     });
 
     describe('Off validation support', () => {
-      let invalidSampleDocId: ObjectId;
+      let sampleDocId: ObjectId;
 
       beforeEach(async () => {
         await db.createCollection('sampleCollection');
-        ({ insertedId: invalidSampleDocId } = await db
-          .collection('sampleCollection')
-          .insertOne({ forbiddenProp: true }));
-
         await db.command({
           collMod: 'sampleCollection',
           validator: {
             $jsonSchema: {
               bsonType: 'object',
+              properties: {
+                _id: { bsonType: 'objectId' },
+                valid_key: { bsonType: 'bool' },
+              },
+              additionalProperties: false,
             },
-            properties: {},
-            additionalProperties: false,
           },
           validationLevel: 'moderate',
           validationAction: 'error',
         });
+        ({ insertedId: sampleDocId } = await db
+          .collection('sampleCollection')
+          .insertOne({ valid_key: true }));
       });
+
       afterEach(async () => {
         await db.dropCollection('sampleCollection');
       });
 
-      it.skip('should reject update when validation is invalid', async () => {
+      it('should reject update when validation is invalid', async () => {
         const dataMigration = new MongoBulkDataMigration({
           ...DM_DEFAULT_SETUP,
           collectionName: 'sampleCollection',
@@ -387,7 +390,7 @@ describe('MongoBulkDataMigration', () => {
         const updatePromise = dataMigration.update();
 
         await expect(updatePromise).rejects.toThrow(
-          new Error('Document failed validation'),
+          'Document failed validation',
         );
       });
 
@@ -403,7 +406,7 @@ describe('MongoBulkDataMigration', () => {
 
         const updatedDoc = await db
           .collection('sampleCollection')
-          .findOne({ _id: invalidSampleDocId });
+          .findOne({ _id: sampleDocId });
         expect((updatedDoc as any).invalid_key).toEqual('update');
       });
     });
