@@ -29,6 +29,9 @@ const COLLECTION_VALIDATION_LEVEL = 'moderate';
 export const DELETE_COLLECTION = Symbol();
 /** Fetches all documents excluding already rolled-back ones, use with query:FETCH_ALL */
 export const FETCH_ALL = Symbol();
+/** Special return value for update function, when we don't need to update a given document */
+export const NO_UPDATE = Symbol();
+
 const defaultLogger = {
   info: (...args: unknown[]) => {
     if (process.env.NODE_ENV === 'test') {
@@ -272,6 +275,10 @@ export default class MongoBulkDataMigration<
       const updateQuery = _.isFunction(this.migrationInfos.update)
         ? await this.migrationInfos.update(_.cloneDeep(document))
         : this.migrationInfos.update;
+
+      if (updateQuery === NO_UPDATE) {
+        return;
+      }
 
       if (this.options.rollbackable) {
         const backupDocument = this.buildBackupDocument(

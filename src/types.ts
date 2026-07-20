@@ -8,6 +8,7 @@ import type {
 } from 'mongodb';
 import type { DELETE_OPERATION } from './lib/MigrationBulk';
 import { DELETE_COLLECTION, FETCH_ALL } from './MongoBulkDataMigration';
+import type { NO_UPDATE } from './MongoBulkDataMigration';
 
 export type DataMigrationOptions<TSchema> = {
   /** Array filters to use in case of a migration on nested object in arrays */
@@ -58,7 +59,10 @@ export type MigrationInfos<TSchema extends Document> = {
     | typeof DELETE_OPERATION
     | ((
         arg: TSchema | UpdateFilter<TSchema>,
-      ) => Promise<UpdateFilter<TSchema>> | UpdateFilter<TSchema>);
+      ) =>
+        | Promise<UpdateFilter<TSchema> | typeof NO_UPDATE>
+        | UpdateFilter<TSchema>
+        | typeof NO_UPDATE);
 };
 
 export type DataMigrationConfig<

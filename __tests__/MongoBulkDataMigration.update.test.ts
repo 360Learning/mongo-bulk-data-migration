@@ -4,6 +4,7 @@ import { Collection, Db, Document, ObjectId, UpdateFilter } from 'mongodb';
 import { MongoBulkDataMigration, DELETE_OPERATION, FETCH_ALL } from '../src';
 import { INITIAL_BULK_INFOS } from '../src/lib/AbstractBulkOperationResults';
 import { LoggerInterface } from '../src/types';
+import { NO_UPDATE } from '../src/MongoBulkDataMigration';
 
 const COLLECTION = 'testCollection';
 const SCRIPT_ID = 'scriptId';
@@ -456,6 +457,71 @@ describe('MongoBulkDataMigration', () => {
         const rollbackCollectionSize = await rollbackCollection.count();
         expect(rollbackCollectionSize).toEqual(0);
         expect(loggerMock.warn).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('NO_UPDATE update action', () => {
+      it('should not update documents when the update function returns NO_UPDATE', async () => {
+        await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
+        const insertedDocuments = await collection.find().toArray();
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          update: (doc) => {
+            if (doc.key === 2) {
+              return NO_UPDATE;
+            } else {
+              return { $set: { key: doc.key + 100 } };
+            }
+          },
+        });
+
+        await dataMigration.update();
+
+        const updatedDocuments = await collection
+          .find()
+          .sort({ _id: 1 })
+          .toArray();
+        expect(updatedDocuments).toEqual([
+          { _id: insertedDocuments[0]._id, key: 101 },
+          { _id: insertedDocuments[1]._id, key: 2 },
+          { _id: insertedDocuments[2]._id, key: 103 },
+        ]);
+      });
+
+      it('should not send ignored documents in batch updates', async () => {
+        await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          update: (doc) => {
+            if (doc.key === 2) {
+              return NO_UPDATE;
+            } else {
+              return { $set: { key: doc.key + 100 } };
+            }
+          },
+        });
+
+        await dataMigration.update();
+
+        const batchSizes = loggerMock.info.mock.calls
+          .filter(([_, msg]) => msg === 'Documents migration is successful')
+          .map(([{ nMatched, nModified }]) => ({ nMatched, nModified }));
+        expect(batchSizes).toEqual([{ nMatched: 2, nModified: 2 }]);
+      });
+
+      it('should not send any batch update if all documents are ignored', async () => {
+        await collection.insertMany([{ key: 1 }, { key: 2 }, { key: 3 }]);
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          update: () => NO_UPDATE,
+        });
+
+        await dataMigration.update();
+
+        const batchSizes = loggerMock.info.mock.calls.filter(
+          ([_, msg]) => msg === 'Documents migration is successful',
+        );
+        expect(batchSizes).toEqual([]);
       });
     });
   });
