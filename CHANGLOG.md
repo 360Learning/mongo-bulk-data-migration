@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.1 (2026-07-21)
+
+- Allow update functions to return the NO_UPDATE symbol
+
 ## 1.8.0 (2026-07-20)
 
 - Upgrade most dependencies
