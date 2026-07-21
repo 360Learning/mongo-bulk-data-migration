@@ -15,9 +15,7 @@ describe('doRollbackAndAssertForInitialState', () => {
     await global.db.collection('sampleCollection').deleteMany({});
   });
 
-  function buildMigration(
-    projection: FindOptions<SampleDoc>['projection'] = { prop: 1 },
-  ) {
+  function buildMigration(projection: FindOptions['projection'] = { prop: 1 }) {
     const db = global.db;
     const collection = 'sampleCollection';
     const query = { prop: 'invalid' };

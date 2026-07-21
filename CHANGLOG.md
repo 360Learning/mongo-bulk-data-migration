@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.0 (2026-07-20)
+
+- Upgrade most dependencies
+- Require node 20
+- Always clear the count timeout, even when an unexpected error is thrown
+
 ## 1.7.0 (2026-06-19)
 
 - Patch rollback incorrectly restoring nested objects - https://github.com/360Learning/mongo-bulk-data-migration/pull/36

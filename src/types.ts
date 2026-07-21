@@ -50,7 +50,7 @@ export type MongoPipeline = object[];
 export type MigrationInfos<TSchema extends Document> = {
   db: Db;
   operation?: typeof DELETE_COLLECTION;
-  projection: FindOptions<TSchema>['projection'];
+  projection: FindOptions['projection'];
   rollback?: (backup?: RollbackDocument['backup']) => RollBackUpdateObject;
   query: Filter<TSchema> | MongoPipeline | typeof FETCH_ALL;
   update:
@@ -93,7 +93,7 @@ export type DMInstanceFilter<
   TQuery extends Filter<TSchema> | typeof FETCH_ALL = Filter<TSchema>,
 > = DMInstanceBase<TSchema> & {
   /** Projected properties (and backed up values) */
-  projection: FindOptions<TSchema>['projection'];
+  projection: FindOptions['projection'];
   /** Mongo query for documents to migrate, or FETCH_ALL to resume excluding already-migrated documents */
   query: TQuery;
 };

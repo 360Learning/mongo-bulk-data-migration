@@ -1,4 +1,4 @@
-import { MongoError, MongoInvalidArgumentError, ObjectId } from 'mongodb';
+import { ObjectId } from 'mongodb';
 
 import type { Collection, Db } from 'mongodb';
 import { MongoBulkDataMigration, DELETE_COLLECTION } from '../src';
@@ -54,9 +54,7 @@ describe('MongoBulkDataMigration', () => {
     const updatePromise = dataMigration.update();
 
     await expect(updatePromise).rejects.toThrow(
-      new MongoInvalidArgumentError(
-        'Document must be a valid JavaScript object',
-      ),
+      'Document must be a valid JavaScript object',
     );
   });
 
@@ -72,7 +70,7 @@ describe('MongoBulkDataMigration', () => {
     const updatePromise = dataMigration.update();
 
     await expect(updatePromise).rejects.toThrow(
-      new MongoError("must specify 'pipeline' when 'from' is empty"),
+      "must specify 'pipeline' when 'from' is empty",
     );
   });
 
