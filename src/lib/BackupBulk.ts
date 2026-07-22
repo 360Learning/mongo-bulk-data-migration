@@ -18,7 +18,6 @@ export class BackupBulk<
     document: WithId<TSchema>,
     rollbackDocument: any,
   ): this {
-    this.totalBulkOps++;
     this.bulk
       .find({ _id: document._id })
       .upsert()

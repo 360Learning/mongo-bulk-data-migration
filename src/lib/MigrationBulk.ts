@@ -32,8 +32,6 @@ export class MigrationBulk<
     objectId: ObjectId,
     arrayFilters: Document[],
   ): this {
-    this.totalBulkOps++;
-
     if (arrayFilters.length === 0) {
       this.bulk.find({ _id: objectId }).update(updateQuery);
     } else {
@@ -47,7 +45,6 @@ export class MigrationBulk<
   }
 
   public addRemoveOperation(objectId: ObjectId): this {
-    this.totalBulkOps++;
     this.bulk.find({ _id: objectId }).deleteOne();
     return this;
   }
