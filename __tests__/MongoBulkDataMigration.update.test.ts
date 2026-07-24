@@ -9,6 +9,7 @@ import { NO_UPDATE } from '../src/MongoBulkDataMigration';
 const COLLECTION = 'testCollection';
 const SCRIPT_ID = 'scriptId';
 const END_OF_BULK_LOG = 'Documents migration is successful';
+const END_OF_ROLLBACK_BULK_LOG = 'Documents backup is successful';
 
 describe('MongoBulkDataMigration', () => {
   let db: Db;
@@ -243,27 +244,6 @@ describe('MongoBulkDataMigration', () => {
           options: {
             maxBulkSize: 30,
             maxConcurrentUpdateCalls: 1000,
-            rollbackable: false,
-          },
-          update,
-        });
-
-        await dataMigration.update();
-
-        expect(extractLogsPayload(END_OF_BULK_LOG)).toEqual([
-          { nMatched: 30, nModified: 30, ok: 1 },
-          { nMatched: 30, nModified: 30, ok: 1 },
-          { nMatched: 30, nModified: 30, ok: 1 },
-          { nMatched: 10, nModified: 10, ok: 1 },
-        ]);
-      });
-
-      it('should perform updates in batches, event when not rollbackable', async () => {
-        const dataMigration = new MongoBulkDataMigration({
-          ...DM_DEFAULT_SETUP,
-          options: {
-            maxBulkSize: 30,
-            maxConcurrentUpdateCalls: 1000,
             rollbackable: true,
           },
           update,
@@ -277,6 +257,34 @@ describe('MongoBulkDataMigration', () => {
           { nMatched: 30, nModified: 30, ok: 1 },
           { nMatched: 10, nModified: 10, ok: 1 },
         ]);
+        expect(extractLogsPayload(END_OF_ROLLBACK_BULK_LOG)).toEqual([
+          { nUpserted: 30, ok: 1 },
+          { nUpserted: 30, ok: 1 },
+          { nUpserted: 30, ok: 1 },
+          { nUpserted: 10, ok: 1 },
+        ]);
+      });
+
+      it('should perform updates in batches, even when not rollbackable', async () => {
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          options: {
+            maxBulkSize: 30,
+            maxConcurrentUpdateCalls: 1000,
+            rollbackable: false,
+          },
+          update,
+        });
+
+        await dataMigration.update();
+
+        expect(extractLogsPayload(END_OF_BULK_LOG)).toEqual([
+          { nMatched: 30, nModified: 30, ok: 1 },
+          { nMatched: 30, nModified: 30, ok: 1 },
+          { nMatched: 30, nModified: 30, ok: 1 },
+          { nMatched: 10, nModified: 10, ok: 1 },
+        ]);
+        expect(extractLogsPayload(END_OF_ROLLBACK_BULK_LOG)).toEqual([]);
       });
     });
 
@@ -510,6 +518,9 @@ describe('MongoBulkDataMigration', () => {
         expect(extractLogsPayload(END_OF_BULK_LOG)).toEqual([
           { nMatched: 2, nModified: 2, ok: 1 },
         ]);
+        expect(extractLogsPayload(END_OF_ROLLBACK_BULK_LOG)).toEqual([
+          { nUpserted: 2, ok: 1 },
+        ]);
       });
 
       it('should not send any batch update if all documents are ignored', async () => {
@@ -522,6 +533,7 @@ describe('MongoBulkDataMigration', () => {
         await dataMigration.update();
 
         expect(extractLogsPayload(END_OF_BULK_LOG)).toEqual([]);
+        expect(extractLogsPayload(END_OF_ROLLBACK_BULK_LOG)).toEqual([]);
       });
     });
   });
