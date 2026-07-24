@@ -8,6 +8,7 @@ import { NO_UPDATE } from '../src/MongoBulkDataMigration';
 
 const COLLECTION = 'testCollection';
 const SCRIPT_ID = 'scriptId';
+const END_OF_BULK_LOG = 'Documents migration is successful';
 
 describe('MongoBulkDataMigration', () => {
   let db: Db;
@@ -226,7 +227,6 @@ describe('MongoBulkDataMigration', () => {
     });
 
     describe('Bulk splitting', () => {
-      const END_OF_BULK_LOG = 'Documents migration is successful';
       let update: (arg: { value: number }) => UpdateFilter<{ value: number }>;
       beforeEach(async () => {
         await collection.insertMany(
@@ -250,10 +250,12 @@ describe('MongoBulkDataMigration', () => {
 
         await dataMigration.update();
 
-        const batchSizes = loggerMock.info.mock.calls
-          .filter(([_, msg]) => msg === END_OF_BULK_LOG)
-          .map(([{ nModified }]) => nModified);
-        expect(batchSizes).toEqual([30, 30, 30, 10]);
+        expect(extractLogsPayload(END_OF_BULK_LOG)).toEqual([
+          { nMatched: 30, nModified: 30, ok: 1 },
+          { nMatched: 30, nModified: 30, ok: 1 },
+          { nMatched: 30, nModified: 30, ok: 1 },
+          { nMatched: 10, nModified: 10, ok: 1 },
+        ]);
       });
 
       it('should perform updates in batches, event when not rollbackable', async () => {
@@ -269,10 +271,12 @@ describe('MongoBulkDataMigration', () => {
 
         await dataMigration.update();
 
-        const batchSizes = loggerMock.info.mock.calls
-          .filter(([_, msg]) => msg === END_OF_BULK_LOG)
-          .map(([{ nModified }]) => nModified);
-        expect(batchSizes).toEqual([30, 30, 30, 10]);
+        expect(extractLogsPayload(END_OF_BULK_LOG)).toEqual([
+          { nMatched: 30, nModified: 30, ok: 1 },
+          { nMatched: 30, nModified: 30, ok: 1 },
+          { nMatched: 30, nModified: 30, ok: 1 },
+          { nMatched: 10, nModified: 10, ok: 1 },
+        ]);
       });
     });
 
@@ -503,10 +507,9 @@ describe('MongoBulkDataMigration', () => {
 
         await dataMigration.update();
 
-        const batchSizes = loggerMock.info.mock.calls
-          .filter(([_, msg]) => msg === 'Documents migration is successful')
-          .map(([{ nMatched, nModified }]) => ({ nMatched, nModified }));
-        expect(batchSizes).toEqual([{ nMatched: 2, nModified: 2 }]);
+        expect(extractLogsPayload(END_OF_BULK_LOG)).toEqual([
+          { nMatched: 2, nModified: 2, ok: 1 },
+        ]);
       });
 
       it('should not send any batch update if all documents are ignored', async () => {
@@ -518,10 +521,7 @@ describe('MongoBulkDataMigration', () => {
 
         await dataMigration.update();
 
-        const batchSizes = loggerMock.info.mock.calls.filter(
-          ([_, msg]) => msg === 'Documents migration is successful',
-        );
-        expect(batchSizes).toEqual([]);
+        expect(extractLogsPayload(END_OF_BULK_LOG)).toEqual([]);
       });
     });
   });
@@ -693,4 +693,10 @@ describe('MongoBulkDataMigration', () => {
       expect(updatedDocuments).toEqual([{ key: 1 }, { key: 3 }]);
     });
   });
+
+  function extractLogsPayload(logText: string) {
+    return loggerMock.info.mock.calls
+      .filter(([_, msg]) => msg === logText)
+      .map(([payload]) => payload);
+  }
 });
