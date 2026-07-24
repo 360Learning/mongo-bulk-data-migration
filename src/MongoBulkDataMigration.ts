@@ -31,6 +31,7 @@ export const DELETE_COLLECTION = Symbol();
 export const FETCH_ALL = Symbol();
 /** Special return value for update function, when we don't need to update a given document */
 export const NO_UPDATE = Symbol();
+export const DONT_COUNT_LOG = 'N/A (dontCount option ON)';
 
 const defaultLogger = {
   info: (...args: unknown[]) => {
@@ -140,9 +141,7 @@ export default class MongoBulkDataMigration<
       rollbackCollection,
     );
     const formattedTotalEntries =
-      totalEntries === NO_COUNT_AVAILABLE
-        ? 'N/A (dontCount option ON)'
-        : totalEntries;
+      totalEntries === NO_COUNT_AVAILABLE ? DONT_COUNT_LOG : totalEntries;
     this.logger.info(
       {
         collectionName: this.collectionName,
@@ -190,7 +189,7 @@ export default class MongoBulkDataMigration<
             totalEntries: formattedTotalEntries,
             progress:
               totalEntries === NO_COUNT_AVAILABLE
-                ? 'N/A (dontCount option ON)'
+                ? DONT_COUNT_LOG
                 : ((treatedDocumentsCount / totalEntries) * 100).toFixed(2),
           },
           'Documents migrated',
@@ -384,9 +383,9 @@ export default class MongoBulkDataMigration<
       rollbackDocument =
         (await cursor.next()) as unknown as RollbackDocument | null;
       if (!rollbackDocument || bulkRollback.size >= this.options.maxBulkSize) {
+        treatedDocumentsCount += bulkRollback.size;
         await bulkRollback.execute();
 
-        treatedDocumentsCount += bulkRollback.size;
         this.logger.info(
           {
             treatedDocumentsCount,
