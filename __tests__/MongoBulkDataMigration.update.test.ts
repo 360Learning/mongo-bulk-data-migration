@@ -4,12 +4,13 @@ import { Collection, Db, Document, ObjectId, UpdateFilter } from 'mongodb';
 import { MongoBulkDataMigration, DELETE_OPERATION, FETCH_ALL } from '../src';
 import { INITIAL_BULK_INFOS } from '../src/lib/AbstractBulkOperationResults';
 import { LoggerInterface } from '../src/types';
-import { NO_UPDATE } from '../src/MongoBulkDataMigration';
+import { DONT_COUNT_LOG, NO_UPDATE } from '../src/MongoBulkDataMigration';
 
 const COLLECTION = 'testCollection';
 const SCRIPT_ID = 'scriptId';
 const END_OF_BULK_LOG = 'Documents migration is successful';
 const END_OF_ROLLBACK_BULK_LOG = 'Documents backup is successful';
+const BULK_SUMMARY_LOG = 'Documents migrated';
 
 describe('MongoBulkDataMigration', () => {
   let db: Db;
@@ -263,6 +264,12 @@ describe('MongoBulkDataMigration', () => {
           { nUpserted: 30, ok: 1 },
           { nUpserted: 10, ok: 1 },
         ]);
+        expect(extractLogsPayload(BULK_SUMMARY_LOG)).toEqual([
+          { treatedDocumentsCount: 30, totalEntries: 100, progress: '30.00' },
+          { treatedDocumentsCount: 60, totalEntries: 100, progress: '60.00' },
+          { treatedDocumentsCount: 90, totalEntries: 100, progress: '90.00' },
+          { treatedDocumentsCount: 100, totalEntries: 100, progress: '100.00' },
+        ]);
       });
 
       it('should perform updates in batches, even when not rollbackable', async () => {
@@ -285,6 +292,49 @@ describe('MongoBulkDataMigration', () => {
           { nMatched: 10, nModified: 10, ok: 1 },
         ]);
         expect(extractLogsPayload(END_OF_ROLLBACK_BULK_LOG)).toEqual([]);
+        expect(extractLogsPayload(BULK_SUMMARY_LOG)).toEqual([
+          { treatedDocumentsCount: 30, totalEntries: 100, progress: '30.00' },
+          { treatedDocumentsCount: 60, totalEntries: 100, progress: '60.00' },
+          { treatedDocumentsCount: 90, totalEntries: 100, progress: '90.00' },
+          { treatedDocumentsCount: 100, totalEntries: 100, progress: '100.00' },
+        ]);
+      });
+
+      it('should not log progress when dontCount option is ON', async () => {
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          options: {
+            maxBulkSize: 30,
+            maxConcurrentUpdateCalls: 1000,
+            dontCount: true,
+          },
+          update,
+        });
+
+        await dataMigration.update();
+
+        expect(extractLogsPayload(BULK_SUMMARY_LOG)).toEqual([
+          {
+            treatedDocumentsCount: 30,
+            totalEntries: DONT_COUNT_LOG,
+            progress: DONT_COUNT_LOG,
+          },
+          {
+            treatedDocumentsCount: 60,
+            totalEntries: DONT_COUNT_LOG,
+            progress: DONT_COUNT_LOG,
+          },
+          {
+            treatedDocumentsCount: 90,
+            totalEntries: DONT_COUNT_LOG,
+            progress: DONT_COUNT_LOG,
+          },
+          {
+            treatedDocumentsCount: 100,
+            totalEntries: DONT_COUNT_LOG,
+            progress: DONT_COUNT_LOG,
+          },
+        ]);
       });
     });
 
