@@ -384,9 +384,9 @@ export default class MongoBulkDataMigration<
       rollbackDocument =
         (await cursor.next()) as unknown as RollbackDocument | null;
       if (!rollbackDocument || bulkRollback.size >= this.options.maxBulkSize) {
+        treatedDocumentsCount += bulkRollback.size;
         await bulkRollback.execute();
 
-        treatedDocumentsCount += bulkRollback.size;
         this.logger.info(
           {
             treatedDocumentsCount,
