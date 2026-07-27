@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.2 (2026-07-24)
+
+- Fix bug: rollback progress correctly logged
+
 ## 1.8.1 (2026-07-21)
 
 - Allow update functions to return the NO_UPDATE symbol

@@ -13,6 +13,8 @@ import { LoggerInterface } from '../src/types';
 const COLLECTION = 'testCollection';
 const ROLLBACK_COLLECTION = `_rollback_${COLLECTION}_scriptId`;
 const SCRIPT_ID = 'scriptId';
+const ROLLBACK_BULK_LOG = 'Documents rollback is successful';
+const ROLLBACK_SUMMARY_LOG = 'Documents rollbacked';
 
 type DmDemoCollection = {
   _id: ObjectId;
@@ -34,7 +36,7 @@ describe('MongoBulkDataMigration', () => {
     projection: any;
     logger: LoggerInterface;
   };
-  let loggerMock: LoggerInterface;
+  let loggerMock: jest.Mocked<LoggerInterface>;
 
   beforeEach(async () => {
     db = global.db;
@@ -1104,5 +1106,43 @@ describe('MongoBulkDataMigration', () => {
         expect(restoredDocuments).toEqual([document]);
       });
     });
+
+    describe('bulk splitting', () => {
+      it('should perform updates in batches', async () => {
+        await collection.insertMany(
+          Array.from({ length: 100 }, (_, i) => ({ value: i + 1 })),
+        );
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          update: { $set: { value: 1000 } },
+          options: {
+            maxBulkSize: 30,
+            maxConcurrentUpdateCalls: 1000,
+          },
+        });
+
+        await dataMigration.update();
+        await dataMigration.rollback();
+
+        expect(extractLogsPayload(ROLLBACK_BULK_LOG)).toEqual([
+          { nMatched: 30, nModified: 30, ok: 1 },
+          { nMatched: 30, nModified: 30, ok: 1 },
+          { nMatched: 30, nModified: 30, ok: 1 },
+          { nMatched: 10, nModified: 10, ok: 1 },
+        ]);
+        expect(extractLogsPayload(ROLLBACK_SUMMARY_LOG)).toEqual([
+          { treatedDocumentsCount: 30, totalEntries: 100, progress: '30.00' },
+          { treatedDocumentsCount: 60, totalEntries: 100, progress: '60.00' },
+          { treatedDocumentsCount: 90, totalEntries: 100, progress: '90.00' },
+          { treatedDocumentsCount: 100, totalEntries: 100, progress: '100.00' },
+        ]);
+      });
+    });
   });
+
+  function extractLogsPayload(logText: string) {
+    return loggerMock.info.mock.calls
+      .filter(([_, msg]) => msg === logText)
+      .map(([payload]) => payload);
+  }
 });
