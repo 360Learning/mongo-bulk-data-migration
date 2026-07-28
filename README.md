@@ -143,12 +143,34 @@ new MongoBulkDataMigration<Score>({
   collectionName: 'scores',
   projection: { scoreA: 1, scoreB: 1 },
   query: FETCH_ALL,
-  update: (doc) => {
+  update: (doc) => ({
     $set: {
-      total: doc.scoreA + doc.scoreB;
-    }
+      total: doc.scoreA + doc.scoreB,
+    },
+  }),
+});
+```
+
+### Conditional update on documents
+
+This migration will update documents depending on an external condition.
+Return the `NO_UPDATE` symbol to declare no update is needed.
+
+```ts
+import { MongoBulkDataMigration, NO_UPDATE } from "@360-l/mongo-bulk-data-migration";
+
+new MongoBulkDataMigration<Score>({
+  db,
+  id: 'conditional_update',
+  collectionName: 'scores',
+  query: FETCH_ALL,
+  update: async (doc) => {
+    if (! await shouldUpdate(doc)) { return NO_UPDATE; }
+    return { $set: { satus: "updated" } };
   },
 });
+
+async function shouldUpdate(...) // external check
 ```
 
 ### Automatic resume (`query: FETCH_ALL`)
