@@ -555,6 +555,23 @@ describe('MongoBulkDataMigration', () => {
         ]);
       });
 
+      it('should combine ranges with a query already filtering on _id', async () => {
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          query: { _id: { $in: [ids[0], ids[4], ids[9]] } },
+          options: { batchScanSize: 3 },
+          update: { $set: { migrated: true } },
+        });
+
+        await dataMigration.update();
+
+        const migratedIds = await collection
+          .find({ migrated: true })
+          .map(({ _id }) => _id)
+          .toArray();
+        expect(migratedIds).toEqual([ids[0], ids[4], ids[9]]);
+      });
+
       it('should migrate documents matched by an aggregate pipeline', async () => {
         const incUpdateStub = jest
           .fn()

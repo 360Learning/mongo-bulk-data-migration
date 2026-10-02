@@ -322,7 +322,9 @@ export default class MongoBulkDataMigration<
       } else {
         const rangeQuery = _.isEmpty(idRange)
           ? query
-          : { ...query, _id: idRange };
+          : '_id' in query
+            ? { $and: [query, { _id: idRange }] }
+            : { ...query, _id: idRange };
         yield* migrationCollection.find(rangeQuery as Filter<TSchema>, {
           projection,
           hint: { _id: 1 },
