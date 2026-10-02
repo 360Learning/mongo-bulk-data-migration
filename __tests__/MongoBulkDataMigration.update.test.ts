@@ -523,10 +523,12 @@ describe('MongoBulkDataMigration', () => {
     });
 
     describe('options.batchScanSize', () => {
+      let ids: ObjectId[];
       beforeEach(async () => {
-        await collection.insertMany(
+        const insertResult = await collection.insertMany(
           Array.from({ length: 10 }, (_, i) => ({ value: i + 1 })),
         );
+        ids = Object.values(insertResult.insertedIds);
       });
 
       it('should migrate all documents scanning the collection by _id ranges', async () => {
@@ -551,6 +553,25 @@ describe('MongoBulkDataMigration', () => {
         expect(rangeQueries.map(({ docsExamined }) => docsExamined)).toEqual([
           3, 3, 3, 1,
         ]);
+      });
+
+      it('should migrate documents matched by an aggregate pipeline', async () => {
+        const incUpdateStub = jest
+          .fn()
+          .mockReturnValue({ $set: { migrated: true } });
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          query: [{ $match: { value: { $mod: [2, 0] } } }],
+          projection: { value: 1 },
+          options: { batchScanSize: 3 },
+          update: incUpdateStub,
+        });
+
+        await dataMigration.update();
+
+        expect(incUpdateStub.mock.calls.map(([doc]) => doc)).toEqual(
+          [2, 4, 6, 8, 10].map((value) => ({ _id: ids[value - 1], value })),
+        );
       });
 
       async function getProfiledFindQueries(filter: Document = {}): Promise<WithId<Document>[]> {

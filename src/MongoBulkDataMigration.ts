@@ -310,7 +310,15 @@ export default class MongoBulkDataMigration<
       };
 
       if (Array.isArray(query)) {
-        // TODO aggregate support
+        const rangeMatch: MongoPipeline = _.isEmpty(idRange)
+          ? []
+          : [{ $match: { _id: idRange } }];
+        const pipeline = rangeMatch
+          .concat(query)
+          .concat(_.isEmpty(projection) ? [] : [{ $project: projection }]);
+        yield* migrationCollection.aggregate<WithId<TSchema>>(pipeline, {
+          hint: { _id: 1 },
+        });
       } else {
         const rangeQuery = _.isEmpty(idRange)
           ? query
