@@ -1,6 +1,13 @@
 import _ from 'lodash';
 // import { ObjectId } from 'bson';
-import { Collection, Db, Document, ObjectId, UpdateFilter, WithId } from 'mongodb';
+import {
+  Collection,
+  Db,
+  Document,
+  ObjectId,
+  UpdateFilter,
+  WithId,
+} from 'mongodb';
 import { MongoBulkDataMigration, DELETE_OPERATION, FETCH_ALL } from '../src';
 import { INITIAL_BULK_INFOS } from '../src/lib/AbstractBulkOperationResults';
 import { LoggerInterface } from '../src/types';
@@ -590,17 +597,92 @@ describe('MongoBulkDataMigration', () => {
           [2, 4, 6, 8, 10].map((value) => ({ _id: ids[value - 1], value })),
         );
       });
+    });
 
-      async function getProfiledFindQueries(filter: Document = {}): Promise<WithId<Document>[]> {
-        await db.command({ profile: 0 });
-        const profileCollection = db.collection('system.profile');
-        const queries = await profileCollection
-          .find({ ns: `${db.databaseName}.${COLLECTION}`, op: 'query', ...filter })
-          .sort({ ts: 1 })
-          .toArray();
-        await profileCollection.drop();
-        return queries;
-      }
+    describe('options.hint', () => {
+      beforeEach(async () => {
+        await collection.insertMany(
+          Array.from({ length: 10 }, (_, i) => ({ value: i + 1 })),
+        );
+        await collection.createIndex({ value: 1 }, { name: 'value_1' });
+      });
+
+      afterEach(async () => {
+        await collection.dropIndexes();
+      });
+
+      it('should use the hinted index for the migration query', async () => {
+        await db.command({ profile: 2 });
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          query: { value: { $gt: 5 } },
+          options: { hint: { _id: 1 } },
+          update: { $set: { migrated: true } },
+        });
+
+        await dataMigration.update();
+
+        const [migrationQuery, ...otherQueries] = await getProfiledFindQueries({
+          'command.filter': { value: { $gt: 5 } },
+        });
+        expect(otherQueries).toEqual([]);
+        expect(migrationQuery.command.hint).toEqual({ _id: 1 });
+        expect(migrationQuery.planSummary).toEqual('IXSCAN { _id: 1 }');
+        expect(await collection.countDocuments({ migrated: true })).toEqual(5);
+      });
+
+      it('should use the hinted index for an aggregate pipeline', async () => {
+        await db.command({ profile: 2 });
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          query: [{ $match: { value: { $gt: 5 } } }],
+          options: { hint: { value: 1 }, dontCount: true },
+          update: { $set: { migrated: true } },
+        });
+
+        await dataMigration.update();
+
+        const [aggregateQuery] = await getProfiledFindQueries({
+          op: 'command',
+          'command.aggregate': COLLECTION,
+        });
+        expect(aggregateQuery.command.hint).toEqual({ value: 1 });
+        expect(aggregateQuery.planSummary).toEqual('IXSCAN { value: 1 }');
+        expect(await collection.countDocuments({ migrated: true })).toEqual(5);
+      });
+
+      it('should override the default _id hint of batchScanSize range queries', async () => {
+        await db.command({ profile: 2 });
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          query: { value: { $gt: 5 } },
+          options: { hint: { value: 1 }, batchScanSize: 5, dontCount: true },
+          update: { $set: { migrated: true } },
+        });
+
+        await dataMigration.update();
+
+        const rangeQueries = await getProfiledFindQueries({
+          'command.hint': { value: 1 },
+        });
+        expect(rangeQueries.map(({ planSummary }) => planSummary)).toEqual([
+          'IXSCAN { value: 1 }',
+          'IXSCAN { value: 1 }',
+        ]);
+        expect(await collection.countDocuments({ migrated: true })).toEqual(5);
+      });
+
+      it('should reject when the hinted index does not exist', async () => {
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          options: { hint: 'unknown_index', dontCount: true },
+          update: { $set: { migrated: true } },
+        });
+
+        await expect(dataMigration.update()).rejects.toThrow(
+          'hint provided does not correspond to an existing index',
+        );
+      });
     });
 
     describe('NO_UPDATE update action', () => {
@@ -836,6 +918,19 @@ describe('MongoBulkDataMigration', () => {
       expect(updatedDocuments).toEqual([{ key: 1 }, { key: 3 }]);
     });
   });
+
+  async function getProfiledFindQueries(
+    filter: Document = {},
+  ): Promise<WithId<Document>[]> {
+    await db.command({ profile: 0 });
+    const profileCollection = db.collection('system.profile');
+    const queries = await profileCollection
+      .find({ ns: `${db.databaseName}.${COLLECTION}`, op: 'query', ...filter })
+      .sort({ ts: 1 })
+      .toArray();
+    await profileCollection.drop();
+    return queries;
+  }
 
   function extractLogsPayload(logText: string) {
     return loggerMock.info.mock.calls

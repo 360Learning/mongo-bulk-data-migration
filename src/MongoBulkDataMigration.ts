@@ -224,23 +224,26 @@ export default class MongoBulkDataMigration<
           resolvedQuery,
           this.options.batchScanSize,
         )
-      : (getCursor(resolvedQuery, this.migrationInfos) as AsyncIterable<
-          WithId<TSchema>
-        >);
+      : (getCursor(
+          resolvedQuery,
+          this.migrationInfos,
+          this.options.hint,
+        ) as AsyncIterable<WithId<TSchema>>);
     const totalEntries = await getTotalEntries(resolvedQuery, this);
     return { documents: documents[Symbol.asyncIterator](), totalEntries };
 
     function getCursor(
       query: Filter<TSchema> | MongoPipeline,
       { projection }: MigrationInfos<TSchema>,
+      hint: DataMigrationOptions<TSchema>['hint'],
     ) {
       if (isPipeline(query)) {
         const pipelineWithProjection = query.concat(
           _.isEmpty(projection) ? [] : [{ $project: projection }],
         );
-        return migrationCollection.aggregate(pipelineWithProjection);
+        return migrationCollection.aggregate(pipelineWithProjection, { hint });
       }
-      return migrationCollection.find(query, { projection });
+      return migrationCollection.find(query, { projection, hint });
     }
 
     async function getTotalEntries(
@@ -263,14 +266,18 @@ export default class MongoBulkDataMigration<
       try {
         if (isPipeline(query)) {
           const pipelineComputeTotal = query.concat({ $count: 'totalEntries' });
-          const cursorComputeTotal =
-            migrationCollection.aggregate(pipelineComputeTotal);
+          const cursorComputeTotal = migrationCollection.aggregate(
+            pipelineComputeTotal,
+            { hint: that.options.hint },
+          );
           const total = (await cursorComputeTotal.next()) as unknown as {
             totalEntries: number;
           } | null;
           return total === null ? 0 : total.totalEntries;
         }
-        return migrationCollection.countDocuments(query);
+        return migrationCollection.countDocuments(query, {
+          hint: that.options.hint,
+        });
       } finally {
         clearTimeout(countTakingTooLongTimeout);
       }
@@ -317,7 +324,7 @@ export default class MongoBulkDataMigration<
           .concat(query)
           .concat(_.isEmpty(projection) ? [] : [{ $project: projection }]);
         yield* migrationCollection.aggregate<WithId<TSchema>>(pipeline, {
-          hint: { _id: 1 },
+          hint: this.options.hint ?? { _id: 1 },
         });
       } else {
         const rangeQuery = _.isEmpty(idRange)
@@ -327,7 +334,7 @@ export default class MongoBulkDataMigration<
             : { ...query, _id: idRange };
         yield* migrationCollection.find(rangeQuery as Filter<TSchema>, {
           projection,
-          hint: { _id: 1 },
+          hint: this.options.hint ?? { _id: 1 },
         });
       }
 
