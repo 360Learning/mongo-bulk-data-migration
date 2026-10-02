@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.0
+
+- Add `batchScanSize` option to scan the collection by `_id` ranges (avoid socket timeouts) - https://github.com/360Learning/mongo-bulk-data-migration/issues/39
+- Add `hint` option to force the index used by the migration query
+
 ## 1.8.2 (2026-07-24)
 
 - Fix bug: rollback progress correctly logged

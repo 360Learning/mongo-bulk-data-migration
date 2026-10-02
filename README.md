@@ -125,6 +125,8 @@ new MongoBulkDataMigration({ ..., options: { ... } })
 - `bypassRollbackValidation` and `bypassUpdateValidation` (default: false): Will set validationLevel to "off" then to "moderate".
 - `throttle` (default: 0): amount of time in ms to sleep between a bulk update. Use this to decrease database stress.
 - `continueOnBulkWriteError` (default: false): will continue the migration on the error in a bulk.
+- `batchScanSize` (default: none): scan the collection by consecutive `_id` ranges of `batchScanSize` documents (e.g. `100_000`) instead of a single query. Can be useful for long migration, can avoid socket timeout. 
+- `hint` (default: none): index to force for the migration query and its count
 
 ## 📕 Advanced usages
 
