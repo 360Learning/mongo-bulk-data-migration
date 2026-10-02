@@ -13,6 +13,8 @@ import type { NO_UPDATE } from './MongoBulkDataMigration';
 export type DataMigrationOptions<TSchema> = {
   /** Array filters to use in case of a migration on nested object in arrays */
   arrayFilters: Document[];
+  /** Limit documents to search and exec a new find() at every batch */
+  batchScanSize?: number;
   /** Disable document validation temporarily on the rollback process */
   bypassRollbackValidation: boolean;
   /** Disable document validation temporarily on the update process */

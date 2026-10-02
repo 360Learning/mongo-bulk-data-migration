@@ -1,6 +1,6 @@
 import _ from 'lodash';
 // import { ObjectId } from 'bson';
-import { Collection, Db, Document, ObjectId, UpdateFilter } from 'mongodb';
+import { Collection, Db, Document, ObjectId, UpdateFilter, WithId } from 'mongodb';
 import { MongoBulkDataMigration, DELETE_OPERATION, FETCH_ALL } from '../src';
 import { INITIAL_BULK_INFOS } from '../src/lib/AbstractBulkOperationResults';
 import { LoggerInterface } from '../src/types';
@@ -520,6 +520,49 @@ describe('MongoBulkDataMigration', () => {
         expect(rollbackCollectionSize).toEqual(0);
         expect(loggerMock.warn).not.toHaveBeenCalled();
       });
+    });
+
+    describe('options.batchScanSize', () => {
+      beforeEach(async () => {
+        await collection.insertMany(
+          Array.from({ length: 10 }, (_, i) => ({ value: i + 1 })),
+        );
+      });
+
+      it('should migrate all documents scanning the collection by _id ranges', async () => {
+        await db.command({ profile: 2 });
+        const dataMigration = new MongoBulkDataMigration({
+          ...DM_DEFAULT_SETUP,
+          options: { batchScanSize: 3 },
+          update: { $set: { migrated: true } },
+        });
+
+        const updateResults = await dataMigration.update();
+
+        expect(updateResults).toEqual({
+          ...INITIAL_BULK_INFOS,
+          nMatched: 10,
+          nModified: 10,
+        });
+        expect(await collection.countDocuments({ migrated: true })).toEqual(10);
+        const rangeQueries = await getProfiledFindQueries({
+          'command.hint': { _id: 1 },
+        });
+        expect(rangeQueries.map(({ docsExamined }) => docsExamined)).toEqual([
+          3, 3, 3, 1,
+        ]);
+      });
+
+      async function getProfiledFindQueries(filter: Document = {}): Promise<WithId<Document>[]> {
+        await db.command({ profile: 0 });
+        const profileCollection = db.collection('system.profile');
+        const queries = await profileCollection
+          .find({ ns: `${db.databaseName}.${COLLECTION}`, op: 'query', ...filter })
+          .sort({ ts: 1 })
+          .toArray();
+        await profileCollection.drop();
+        return queries;
+      }
     });
 
     describe('NO_UPDATE update action', () => {

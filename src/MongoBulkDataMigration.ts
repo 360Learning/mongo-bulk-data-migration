@@ -136,7 +136,7 @@ export default class MongoBulkDataMigration<
     }
 
     await this.lowerValidationLevel('update');
-    const { cursor, totalEntries } = await this.getCursorAndCount(
+    const { documents, totalEntries } = await this.getDocumentsAndCount(
       migrationCollection,
       rollbackCollection,
     );
@@ -156,14 +156,14 @@ export default class MongoBulkDataMigration<
     let updatePromises: Promise<any>[] = [];
 
     let treatedDocumentsCount = 0;
-    let document = (await cursor.next()) as WithId<TSchema> | null;
+    let document = await nextDocument();
     while (document !== null) {
       const bulkUpdateWrappedPromise = updatePromiseLimiter(
         this.buildBulkUpdater(document, bulkBackup, bulkMigration),
       );
       updatePromises.push(bulkUpdateWrappedPromise);
 
-      document = (await cursor.next()) as WithId<TSchema> | null;
+      document = await nextDocument();
       if (!document || updatePromises.length >= this.options.maxBulkSize) {
         await Promise.all(updatePromises);
         const backupRes = (await bulkBackup.execute()).getResults();
@@ -205,17 +205,30 @@ export default class MongoBulkDataMigration<
     );
     await this.restoreValidationLevel('update');
     return bulkMigration.getResults();
+
+    async function nextDocument() {
+      const { value, done } = await documents.next();
+      return done ? null : value;
+    }
   }
 
-  private async getCursorAndCount(
+  private async getDocumentsAndCount(
     migrationCollection: Collection<TSchema>,
     rollbackCollection: Collection<TSchema>,
   ) {
     const resolvedQuery = await this.resolveQuery(rollbackCollection);
 
-    const cursor = getCursor(resolvedQuery, this.migrationInfos);
+    const documents: AsyncIterable<WithId<TSchema>> = this.options.batchScanSize
+      ? this.iterateByIdRanges(
+          migrationCollection,
+          resolvedQuery,
+          this.options.batchScanSize,
+        )
+      : (getCursor(resolvedQuery, this.migrationInfos) as AsyncIterable<
+          WithId<TSchema>
+        >);
     const totalEntries = await getTotalEntries(resolvedQuery, this);
-    return { cursor, totalEntries };
+    return { documents: documents[Symbol.asyncIterator](), totalEntries };
 
     function getCursor(
       query: Filter<TSchema> | MongoPipeline,
@@ -268,6 +281,51 @@ export default class MongoBulkDataMigration<
     ): query is MongoPipeline {
       return Array.isArray(query);
     }
+  }
+
+  private async *iterateByIdRanges(
+    migrationCollection: Collection<TSchema>,
+    query: Filter<TSchema> | MongoPipeline,
+    batchScanSize: number,
+  ): AsyncGenerator<WithId<TSchema>> {
+    const { projection } = this.migrationInfos;
+    let lowerBound: unknown = undefined;
+
+    do {
+      const upperBoundDocument = await migrationCollection
+        .find(
+          (lowerBound === undefined
+            ? {}
+            : { _id: { $gte: lowerBound } }) as Filter<TSchema>,
+          { projection: { _id: 1 } },
+        )
+        .sort({ _id: 1 })
+        .skip(batchScanSize)
+        .limit(1)
+        .next();
+      const upperBound = upperBoundDocument?._id;
+      const idRange = {
+        ...(lowerBound !== undefined && { $gte: lowerBound }),
+        ...(upperBound !== undefined && { $lt: upperBound }),
+      };
+
+      if (Array.isArray(query)) {
+        // TODO aggregate support
+      } else {
+        const rangeQuery = _.isEmpty(idRange)
+          ? query
+          : { ...query, _id: idRange };
+        yield* migrationCollection.find(rangeQuery as Filter<TSchema>, {
+          projection,
+          hint: { _id: 1 },
+        });
+      }
+
+      lowerBound = upperBound;
+      if (lowerBound !== undefined) {
+        await this.throttle();
+      }
+    } while (lowerBound !== undefined);
   }
 
   private buildBulkUpdater(
