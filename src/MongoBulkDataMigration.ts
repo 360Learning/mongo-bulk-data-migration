@@ -156,14 +156,14 @@ export default class MongoBulkDataMigration<
     let updatePromises: Promise<any>[] = [];
 
     let treatedDocumentsCount = 0;
-    let document = await nextDocument();
+    let document = await nextDocument(documents);
     while (document !== null) {
       const bulkUpdateWrappedPromise = updatePromiseLimiter(
         this.buildBulkUpdater(document, bulkBackup, bulkMigration),
       );
       updatePromises.push(bulkUpdateWrappedPromise);
 
-      document = await nextDocument();
+      document = await nextDocument(documents);
       if (!document || updatePromises.length >= this.options.maxBulkSize) {
         await Promise.all(updatePromises);
         const backupRes = (await bulkBackup.execute()).getResults();
@@ -206,7 +206,9 @@ export default class MongoBulkDataMigration<
     await this.restoreValidationLevel('update');
     return bulkMigration.getResults();
 
-    async function nextDocument() {
+    async function nextDocument(
+      _documents: AsyncIterator<WithId<TSchema>, any, any>
+    ): Promise<null | WithId<TSchema>> {
       const { value, done } = await documents.next();
       return done ? null : value;
     }
