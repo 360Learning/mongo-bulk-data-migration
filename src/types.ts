@@ -5,6 +5,7 @@ import type {
   UpdateFilter,
   ObjectId,
   Document,
+  Hint,
 } from 'mongodb';
 import type { DELETE_OPERATION } from './lib/MigrationBulk';
 import { DELETE_COLLECTION, FETCH_ALL } from './MongoBulkDataMigration';
@@ -13,10 +14,14 @@ import type { NO_UPDATE } from './MongoBulkDataMigration';
 export type DataMigrationOptions<TSchema> = {
   /** Array filters to use in case of a migration on nested object in arrays */
   arrayFilters: Document[];
+  /** Limit documents to search and exec a new find() at every batch */
+  batchScanSize?: number;
   /** Disable document validation temporarily on the rollback process */
   bypassRollbackValidation: boolean;
   /** Disable document validation temporarily on the update process */
   bypassUpdateValidation: boolean;
+  /** Index to force for the migration query */
+  hint?: Hint;
   /** When counting drops performance before the migration _(un-indexed results or aggregation)_, turn this on */
   dontCount: boolean;
   /** When set to true, for an update, MongoBulkWriteError (only) won't stop the update operation and be accumulated in the return response */
